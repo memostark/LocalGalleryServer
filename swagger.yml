@@ -1,0 +1,30 @@
+swagger: "2.0"
+info:
+  description: This is a swagger file that goes with our server code
+  version: "1.0.0"
+  title: Swagger REST Article
+consumes:
+  - "application/json"
+produces:
+  - "application/json"
+
+basePath: "/api"
+
+# Paths supported by the server application
+paths:
+  /folders:
+    get:
+      operationId: "folders.read"
+      tags:
+        - "Folders"
+      summary: "Folder within selected folder"
+      description: "Read the list of folders"
+      responses:
+        200:
+          description: "Successful read folders list operation"
+          schema:
+            type: "array"
+            items:
+              properties:
+                name:
+                  type: "string"
