@@ -14,7 +14,7 @@ basePath: "/api"
 paths:
   /folders:
     get:
-      operationId: "folders.read"
+      operationId: "folders.read_all"
       tags:
         - "Folders"
       summary: "Folder within selected folder"
@@ -28,3 +28,24 @@ paths:
               properties:
                 name:
                   type: "string"
+
+  /folders/{name}:
+    get:
+      operationId: "folders.read_folder"
+      tags:
+        - "Folders"
+      summary: Read one folder from the folders list
+      description: Read one folder from the folders list
+      parameters:
+        - name: name
+          in: path
+          description: Name of the folder to get from the list
+          type: string
+          required: True
+      responses:
+        200:
+          description: Successfully read folder from list
+          schema:
+            properties:
+              name:
+                type: string
