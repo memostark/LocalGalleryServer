@@ -1,4 +1,7 @@
+import os
 from flask import abort
+
+ARCHIVED_FOLDERS_PATH = os.environ['FOLDERS_PATH']
 
 FOLDERS = {
     "First": {
@@ -21,7 +24,8 @@ def read_all():
 
     :return:        json string of list of folders
     '''
-    return [FOLDERS[key] for key in sorted(FOLDERS.keys())]
+    folders = os.listdir(ARCHIVED_FOLDERS_PATH)
+    return [{"name": folder} for folder in folders]
 
 def read_folder(name):
     '''

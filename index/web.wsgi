@@ -1,6 +1,11 @@
-import sys
+import sys, os
  
 # Project root dir
 sys.path.insert(0, 'D:/Documentos/Proyectos/Python/GalleryServer')
- 
-from app import flask_app as application
+
+def application(environ, start_response):
+    for key in ['FOLDERS_PATH']:
+        os.environ[key] = environ.get(key, '')
+    
+    from app import flask_app as _application
+    return _application(environ, start_response)
