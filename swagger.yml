@@ -44,8 +44,10 @@ paths:
           required: True
       responses:
         200:
-          description: Successfully read folder from list
+          description: Successfully read files from folder
           schema:
-            properties:
-              name:
-                type: string
+            type: "array"
+            items:
+              properties:
+                fileName:
+                  type: "string"

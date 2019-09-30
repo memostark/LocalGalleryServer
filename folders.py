@@ -3,20 +3,7 @@ from flask import abort
 
 ARCHIVED_FOLDERS_PATH = os.environ['FOLDERS_PATH']
 
-FOLDERS = {
-    "First": {
-        "name": "John"
-    },
-    "Second": {
-        "name": "Paul"
-    },
-    "Third": {
-        "name": "George"
-    },
-    "Fourth": {
-        "name": "Ringo"
-    }
-}
+FOLDERS = None
 
 def read_all():
     '''
@@ -24,8 +11,8 @@ def read_all():
 
     :return:        json string of list of folders
     '''
-    folders = os.listdir(ARCHIVED_FOLDERS_PATH)
-    return [{"name": folder} for folder in folders]
+    FOLDERS = os.listdir(ARCHIVED_FOLDERS_PATH)
+    return [{"name": folder} for folder in FOLDERS]
 
 def read_folder(name):
     '''
@@ -34,10 +21,14 @@ def read_folder(name):
     :param name:    name of folder to find
     :return:        folder matching name
     '''
+    Local_Folders = FOLDERS
+    if Local_Folders is None:
+        Local_Folders = os.listdir(ARCHIVED_FOLDERS_PATH)
 
-    if name in FOLDERS:
-        folder = FOLDERS.get(name)
+    if name in Local_Folders:
+        path = os.path.join(ARCHIVED_FOLDERS_PATH, name)
+        files = os.listdir(path)
     else:
         abort(404, f"Folder with {name} not found")
 
-    return folder
+    return files
