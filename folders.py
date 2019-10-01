@@ -1,7 +1,10 @@
 import os
+from urllib.parse import urljoin
+
 from flask import abort
 
 ARCHIVED_FOLDERS_PATH = os.environ['FOLDERS_PATH']
+IMAGES_URL = os.environ['IMAGES_SERVER']
 
 FOLDERS = None
 
@@ -27,7 +30,12 @@ def read_folder(name):
 
     if name in Local_Folders:
         path = os.path.join(ARCHIVED_FOLDERS_PATH, name)
-        files = os.listdir(path)
+        fileNames = os.listdir(path)
+
+        #We put trailing slash because some paths are for folders
+        fullImagePath = urljoin(IMAGES_URL, "images/") 
+        personPath = urljoin(fullImagePath, name + "/")
+        files = [urljoin(personPath, fileName) for fileName in fileNames]
     else:
         abort(404, f"Folder with {name} not found")
 
