@@ -28,6 +28,10 @@ paths:
               properties:
                 name:
                   type: "string"
+                coverUrl:
+                  type: string
+                count:
+                  type: integer
 
   /folders/{name}:
     get:
