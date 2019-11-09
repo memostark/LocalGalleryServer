@@ -1,14 +1,28 @@
-import os
+import os, socket
 from urllib.parse import urljoin
 
 from flask import abort
 
 ARCHIVED_FOLDERS_PATH = os.environ['FOLDERS_PATH']
-IMAGES_URL = os.environ['IMAGES_SERVER']
 
 IMAGE_EXTENSIONS = ['jpg','jpeg', 'png']
 
 FOLDERS = None
+
+def get_default_path():
+    IMAGES_URL = os.environ['IMAGES_SERVER']
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    path = s.getsockname()[0].strip()
+    s.close()
+
+    path = path if not IMAGES_URL.strip() else IMAGES_URL
+    if(not path.startswith(r"http://")):
+        path = r"http://" + path
+    return path
+
+DEFAULT_PATH = get_default_path()
 
 def read_all():
     '''
@@ -31,7 +45,7 @@ def read_all():
             coverUrl = ""
         else:
             # Create full url path, e.g. http://1.1.1.1:5000/images/folder/file.jpg
-            fullImagePath = urljoin(IMAGES_URL, "images/") 
+            fullImagePath = urljoin(DEFAULT_PATH, "images/") 
             personPath = urljoin(fullImagePath, folder + "/")
             coverUrl = urljoin(personPath, coverFile)
 
@@ -55,7 +69,7 @@ def read_folder(name):
         fileNames = os.listdir(path)
 
         # We put trailing slash because some paths are for folders
-        fullImagePath = urljoin(IMAGES_URL, "images/") 
+        fullImagePath = urljoin(DEFAULT_PATH, "images/") 
         personPath = urljoin(fullImagePath, name + "/")
         files = [urljoin(personPath, fileName) for fileName in fileNames]
     else:
