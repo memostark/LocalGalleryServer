@@ -1,7 +1,8 @@
 import sys, os
  
 # Project root dir
-sys.path.insert(0, 'D:/Documentos/Proyectos/Python/GalleryServer')
+BASE_DIR = os.path.join( os.path.dirname( __file__ ), '..' )
+sys.path.insert(0, BASE_DIR)
 
 def application(environ, start_response):
     for key in ['FOLDERS_PATH', 'IMAGES_SERVER']:
