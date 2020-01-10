@@ -23,15 +23,19 @@ paths:
         200:
           description: "Successful read folders list operation"
           schema:
-            type: "array"
-            items:
-              properties:
+            properties:
                 name:
-                  type: "string"
-                coverUrl:
                   type: string
-                count:
-                  type: integer
+                folders:
+                  type: "array"
+                  items:
+                    properties:
+                      name:
+                        type: "string"
+                      coverUrl:
+                        type: string
+                      count:
+                        type: integer
 
   /folders/{name}:
     get:

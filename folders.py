@@ -5,11 +5,13 @@ from flask import abort
 
 ARCHIVED_FOLDERS_PATH = os.environ['FOLDERS_PATH']
 
+dirName = os.path.basename(ARCHIVED_FOLDERS_PATH)
+
 IMAGE_EXTENSIONS = ['jpg','jpeg', 'png']
 
 FOLDERS = None
 
-def get_default_path():
+def _get_default_path():
     IMAGES_URL = os.environ['IMAGES_SERVER']
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -22,7 +24,7 @@ def get_default_path():
         path = r"http://" + path
     return path
 
-DEFAULT_PATH = get_default_path()
+DEFAULT_PATH = _get_default_path()
 
 def read_all():
     '''
@@ -44,14 +46,14 @@ def read_all():
         if coverFile is None:
             coverUrl = ""
         else:
-            # Create full url path, e.g. http://1.1.1.1:5000/images/folder/file.jpg
+            # Create full url path, e.g. http://1.1.1.1:5000/images/folderName/fileName.jpg
             fullImagePath = urljoin(DEFAULT_PATH, "images/") 
             personPath = urljoin(fullImagePath, folder + "/")
             coverUrl = urljoin(personPath, coverFile)
 
         folderItems.append({"name": folder, "coverUrl": coverUrl, "count": count})
 
-    return folderItems
+    return {"name": dirName, "folders": folderItems}
 
 def read_folder(name):
     '''
