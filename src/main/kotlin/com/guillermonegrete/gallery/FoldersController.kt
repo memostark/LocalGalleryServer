@@ -1,13 +1,18 @@
 package com.guillermonegrete.gallery
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import javax.validation.Valid
 
 @RestController
-class FoldersController{
+class FoldersController(val repository: FoldersRepository){
 
-    @GetMapping("/greeting")
-    fun greeting(@RequestParam(value = "name", defaultValue = "World") name: String) = "Hello, $name"
-    
+    @Value("\${BASE_PATH}")
+    private lateinit var basePath: String
+
+    @GetMapping("/folders")
+    fun rootFolders(): List<String>{
+        return repository.getFolders(basePath)
+    }
 }
