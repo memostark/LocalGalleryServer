@@ -12,7 +12,7 @@ import java.net.InetAddress
 @RestController
 class FoldersController(val repository: FoldersRepository){
 
-    @Value("\${BASE_PATH}")
+    @Value("\${base.path}")
     private lateinit var basePath: String
     private val ipAddress: String by lazy { getLocalIpAddress() }
 
