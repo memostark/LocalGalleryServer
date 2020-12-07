@@ -12,7 +12,7 @@ IMAGE_EXTENSIONS = ['jpg','jpeg', 'png']
 FOLDERS = None
 
 def _get_default_path():
-    IMAGES_URL = os.environ['IMAGES_SERVER']
+    IMAGES_URL = os.environ.get('IMAGES_SERVER')
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
