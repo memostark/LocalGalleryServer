@@ -1,9 +1,11 @@
 package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.GetFolderResponse
+import com.guillermonegrete.gallery.data.ImageFile
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.collection.IsCollectionWithSize.hasSize
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -13,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import java.net.InetAddress
 
 @WebMvcTest
 @TestPropertySource(properties = [
@@ -35,5 +38,21 @@ class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
         mockMvc.perform(get("/folders")).andDo(print()).andExpect(status().isOk)
                 .andExpect(jsonPath("$.name").value(expected.name))
                 .andExpect(jsonPath("$.folders", `is`(expected.folders)))
+    }
+
+    @Test
+    fun `Sub folder returns list of image files`(){
+        val subFolder = "subFolder"
+        val ipAddress = InetAddress.getLocalHost().hostAddress
+
+        every { foldersRepository.getFolders(path) } returns listOf(subFolder)
+
+        every { foldersRepository.getImages("$path/$subFolder") } returns listOf(ImageFile("image1", 100, 100))
+
+        mockMvc.perform(get("/folders/$subFolder")).andDo(print()).andExpect(status().isOk)
+                .andExpect(jsonPath("$", hasSize<Array<Any>>(1)))
+                .andExpect(jsonPath("$[0].url").value("http://$ipAddress/images/$subFolder/image1"))
+                .andExpect(jsonPath("$[0].width").value(100))
+                .andExpect(jsonPath("$[0].height").value(100))
     }
 }

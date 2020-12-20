@@ -1,5 +1,6 @@
 package com.guillermonegrete.gallery
 
+import com.guillermonegrete.gallery.data.ImageFile
 import org.assertj.core.util.VisibleForTesting
 import java.lang.RuntimeException
 
@@ -16,6 +17,10 @@ class FakeFolderRepository: FoldersRepository {
     override fun getFolders(path: String): List<String> {
         if(shouldReturnError) throw RuntimeException()
         else return foldersServiceData
+    }
+
+    override fun getImages(folder: String): List<ImageFile> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     @VisibleForTesting

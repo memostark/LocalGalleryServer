@@ -2,6 +2,7 @@ package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.Folder
 import com.guillermonegrete.gallery.data.GetFolderResponse
+import com.guillermonegrete.gallery.data.ImageFile
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -34,16 +35,19 @@ class FoldersController(val repository: FoldersRepository){
     }
 
     @GetMapping("/folders/{subFolder}")
-    fun subFolder(@PathVariable subFolder: String): List<String>{
+    fun subFolder(@PathVariable subFolder: String): List<ImageFile>{
         var localFolders = cachedFolders.toList()
 
         if(localFolders.isEmpty())
             localFolders = repository.getFolders(basePath)
 
         if(subFolder in localFolders){
-            val fileNames = repository.getFolders("$basePath/$subFolder")
+            val fileNames = repository.getImages("$basePath/$subFolder")
 
-            return fileNames.map { "http://$ipAddress/images/$subFolder/$it" }
+            val subFolderPath = "http://$ipAddress/images/$subFolder"
+            return fileNames.map {
+                ImageFile("$subFolderPath/${it.url}", it.width, it.height)
+            }
         }else{
             throw RuntimeException("Folder path not found")
         }
