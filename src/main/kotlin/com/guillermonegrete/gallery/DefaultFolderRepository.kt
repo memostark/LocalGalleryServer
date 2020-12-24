@@ -17,9 +17,9 @@ class DefaultFolderRepository: FoldersRepository {
     }
 
     override fun getImages(folder: String): List<ImageFile> {
-        return File(folder).listFiles()?.map {
-            val dimensions = getImageDimension(it)
-            ImageFile(it.name, dimensions.width, dimensions.height)
+        return File(folder).listFiles()?.mapNotNull { file ->
+            val dimensions = getImageDimension(file)
+            dimensions?.let { ImageFile(file.name, it.width, it.height) }
         } ?: emptyList()
     }
 
@@ -30,7 +30,7 @@ class DefaultFolderRepository: FoldersRepository {
      * @throws IOException if the file is not a known image
      */
     @Throws(IOException::class)
-    fun getImageDimension(imgFile: File): Dimension {
+    fun getImageDimension(imgFile: File): Dimension? {
         val pos = imgFile.name.lastIndexOf(".")
         if (pos == -1) throw IOException("No extension for file: " + imgFile.absolutePath)
         val suffix = imgFile.name.substring(pos + 1)
@@ -49,6 +49,7 @@ class DefaultFolderRepository: FoldersRepository {
                 reader.dispose()
             }
         }
-        throw IOException("Not a known image file: " + imgFile.absolutePath)
+        println("Not a known image file: ${imgFile.absoluteFile}")
+        return null
     }
 }
