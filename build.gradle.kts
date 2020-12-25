@@ -23,6 +23,8 @@ dependencies {
 	// For UDP
 	implementation("org.springframework.integration:spring-integration-ip")
 
+	implementation("org.mp4parser:isoparser:1.9.27")
+
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
 		exclude(module = "junit")
 		exclude(module = "mockito-core")
