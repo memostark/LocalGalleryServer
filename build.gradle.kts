@@ -24,6 +24,10 @@ dependencies {
 	// For UDP
 	implementation("org.springframework.integration:spring-integration-ip")
 
+	// Mysql with jpa
+	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	runtimeOnly("mysql:mysql-connector-java")
+
 	implementation("org.mp4parser:isoparser:1.9.27")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
