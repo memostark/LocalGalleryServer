@@ -30,7 +30,7 @@ class GalleryApplication{
                     try {
                         repository.save(mediaFile)
                     } catch (e: DataIntegrityViolationException){
-
+                        // No need to print error, logs are already printed
                     }
                 }
                 println("Processed $folder...")
