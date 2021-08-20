@@ -8,7 +8,9 @@ import org.springframework.stereotype.Component
 import java.awt.Dimension
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileNotFoundException
 import java.io.IOException
+import java.lang.RuntimeException
 import javax.imageio.ImageIO
 import javax.imageio.stream.FileImageInputStream
 
@@ -59,17 +61,25 @@ class DefaultFolderRepository: FoldersRepository {
     }
 
     private fun getVideoDimensions(file: File): Dimension?{
-        val fc = FileInputStream(file).channel
-        val isoFile = IsoFile(fc)
-        val moov: MovieBox = isoFile.movieBox
-        for (box in moov.boxes) {
+        return try {
+            val fc = FileInputStream(file).channel
+            val isoFile = IsoFile(fc)
+            val moov = isoFile.movieBox
+            for (box in moov.boxes) {
 
-            if(box is TrackBox){
-                val header = box.trackHeaderBox
-                val dimension = Dimension(header.width.toInt(), header.height.toInt())
-                return if(dimension.height != 0 || dimension.width != 0) dimension else null
+                if(box is TrackBox){
+                    val header = box.trackHeaderBox
+                    val dimension = Dimension(header.width.toInt(), header.height.toInt())
+                    return if(dimension.height != 0 || dimension.width != 0) dimension else null
+                }
             }
+            null
+        }catch (e: FileNotFoundException){
+            println(e.message)
+            null
+        }catch (e: RuntimeException){
+            println(e.message)
+            null
         }
-        return null
     }
 }
