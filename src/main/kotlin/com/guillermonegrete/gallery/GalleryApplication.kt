@@ -34,7 +34,10 @@ class GalleryApplication{
                 }
 
                 val files = folderRepository.getImages("$basePath/$folder")
+
+                val databaseFileNames = mediaFolder.files.map { it.filename }.toSet()
                 for(file in files){
+                    if(databaseFileNames.contains(file.url)) continue
                     val mediaFile = MediaFile(file.url, file.width, file.height, mediaFolder)
                     try {
                         repository.save(mediaFile)

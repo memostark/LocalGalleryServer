@@ -14,4 +14,8 @@ data class MediaFile(
     var folder: MediaFolder = MediaFolder(),
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     val id: Long = 0
-)
+){
+    override fun toString(): String {
+        return "{name: $filename, width: $width, height: $height, folder: ${folder.name}}"
+    }
+}
