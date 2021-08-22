@@ -1,7 +1,9 @@
 package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.MediaFile
+import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.repository.MediaFileRepository
+import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
@@ -16,7 +18,7 @@ class GalleryApplication{
     private lateinit var basePath: String
 
     @Bean
-    fun demo(repository: MediaFileRepository, folderRepository: DefaultFolderRepository): CommandLineRunner {
+    fun demo(repository: MediaFileRepository, mediaFolderRepo: MediaFolderRepository, folderRepository: DefaultFolderRepository): CommandLineRunner {
         return CommandLineRunner {
             println("On command line runner")
             // Get all folders
@@ -24,9 +26,16 @@ class GalleryApplication{
             // For each folder, extract info: filename, width and height
 
             for(folder in folders){
+                var mediaFolder = mediaFolderRepo.findByName(folder)
+                if(mediaFolder == null){
+                    mediaFolder = MediaFolder(folder)
+                    mediaFolderRepo.save(mediaFolder)
+                    println("Found new folder: $folder")
+                }
+
                 val files = folderRepository.getImages("$basePath/$folder")
                 for(file in files){
-                    val mediaFile = MediaFile(file.url, file.width, file.height)
+                    val mediaFile = MediaFile(file.url, file.width, file.height, mediaFolder)
                     try {
                         repository.save(mediaFile)
                     } catch (e: DataIntegrityViolationException){
