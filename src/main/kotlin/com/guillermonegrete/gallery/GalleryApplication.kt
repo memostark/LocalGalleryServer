@@ -18,7 +18,7 @@ class GalleryApplication{
     private lateinit var basePath: String
 
     @Bean
-    fun demo(repository: MediaFileRepository, mediaFolderRepo: MediaFolderRepository, folderRepository: DefaultFolderRepository): CommandLineRunner {
+    fun checkFolders(repository: MediaFileRepository, mediaFolderRepo: MediaFolderRepository, folderRepository: FoldersRepository): CommandLineRunner {
         return CommandLineRunner {
             println("On command line runner")
             // Get all folders

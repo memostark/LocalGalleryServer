@@ -9,6 +9,7 @@ import org.hamcrest.collection.IsCollectionWithSize.hasSize
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
@@ -22,6 +23,10 @@ import java.net.InetAddress
     "base.path=dummy"
 ])
 class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
+
+    // For the bean in application class, don't want to run it in these tests
+    @MockkBean(relaxed = true)
+    private lateinit var commandLineRunner: CommandLineRunner
 
     @MockkBean
     private lateinit var foldersRepository: FoldersRepository
