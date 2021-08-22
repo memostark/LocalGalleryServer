@@ -2,6 +2,9 @@ package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.GetFolderResponse
 import com.guillermonegrete.gallery.data.ImageFile
+import com.guillermonegrete.gallery.data.MediaFile
+import com.guillermonegrete.gallery.data.MediaFolder
+import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.hamcrest.CoreMatchers.`is`
@@ -28,8 +31,8 @@ class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
     @MockkBean(relaxed = true)
     private lateinit var commandLineRunner: CommandLineRunner
 
-    @MockkBean
-    private lateinit var foldersRepository: FoldersRepository
+    @MockkBean private lateinit var foldersRepository: FoldersRepository
+    @MockkBean private lateinit var mediaFolderRepository: MediaFolderRepository
 
     @Value("\${base.path}")
     private lateinit var path: String
@@ -50,14 +53,32 @@ class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
         val subFolder = "subFolder"
         val ipAddress = InetAddress.getLocalHost().hostAddress
 
-        every { foldersRepository.getFolders(path) } returns listOf(subFolder)
-
-        every { foldersRepository.getImages("$path/$subFolder") } returns listOf(ImageFile("image1", 100, 100))
+        every { mediaFolderRepository.findByName(subFolder) } returns MediaFolder(subFolder, listOf(MediaFile("image1", 100, 100)))
 
         mockMvc.perform(get("/folders/$subFolder")).andDo(print()).andExpect(status().isOk)
                 .andExpect(jsonPath("$", hasSize<Array<Any>>(1)))
                 .andExpect(jsonPath("$[0].url").value("http://$ipAddress/images/$subFolder/image1"))
                 .andExpect(jsonPath("$[0].width").value(100))
                 .andExpect(jsonPath("$[0].height").value(100))
+    }
+
+    @Test
+    fun `Sub folder returns page of image files`(){
+        val subFolder = "subFolder"
+        val ipAddress = InetAddress.getLocalHost().hostAddress
+        val page: List<ImageFile> = List(21) { ImageFile("image$it", 100 + it, 100 + it) }
+
+        every { foldersRepository.getFolders(path) } returns listOf(subFolder)
+
+        every { foldersRepository.getImages("$path/$subFolder") } returns page
+
+        // First check the items then total pages and total items
+        mockMvc.perform(get("/folders/$subFolder").param("size", "20").param("page", "0")).andDo(print()).andExpect(status().isOk)
+            .andExpect(jsonPath("$.items", hasSize<Array<Any>>(20)))
+            .andExpect(jsonPath("$.items[0].url").value("http://$ipAddress/images/$subFolder/image0"))
+            .andExpect(jsonPath("$.items[0].width").value(100))
+            .andExpect(jsonPath("$.items[0].height").value(100))
+            .andExpect(jsonPath("$.totalPages").value(2))
+            .andExpect(jsonPath("$.totalItems").value(21))
     }
 }
