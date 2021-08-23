@@ -1,9 +1,9 @@
 package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.GetFolderResponse
-import com.guillermonegrete.gallery.data.ImageFile
 import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.MediaFolder
+import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
@@ -33,6 +35,7 @@ class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
 
     @MockkBean private lateinit var foldersRepository: FoldersRepository
     @MockkBean private lateinit var mediaFolderRepository: MediaFolderRepository
+    @MockkBean private lateinit var mediaFileRepository: MediaFileRepository
 
     @Value("\${base.path}")
     private lateinit var path: String
@@ -66,11 +69,14 @@ class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
     fun `Sub folder returns page of image files`(){
         val subFolder = "subFolder"
         val ipAddress = InetAddress.getLocalHost().hostAddress
-        val page: List<ImageFile> = List(21) { ImageFile("image$it", 100 + it, 100 + it) }
+        val content = List(21) { MediaFile("image$it", 100 + it, 100 + it) }
 
-        every { foldersRepository.getFolders(path) } returns listOf(subFolder)
+        val mediaFolder = MediaFolder(subFolder)
+        val pageable = PageRequest.of(0, 20)
 
-        every { foldersRepository.getImages("$path/$subFolder") } returns page
+        every { mediaFolderRepository.findByName(subFolder) } returns mediaFolder
+
+        every { mediaFileRepository.findAllByFolder(mediaFolder, pageable) } returns PageImpl(content.subList(0, 20), pageable, content.size.toLong())
 
         // First check the items then total pages and total items
         mockMvc.perform(get("/folders/$subFolder").param("size", "20").param("page", "0")).andDo(print()).andExpect(status().isOk)
