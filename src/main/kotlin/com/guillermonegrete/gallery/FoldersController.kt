@@ -4,6 +4,8 @@ import com.guillermonegrete.gallery.data.Folder
 import com.guillermonegrete.gallery.data.GetFolderResponse
 import com.guillermonegrete.gallery.data.ImageFile
 import com.guillermonegrete.gallery.data.SimplePage
+import com.guillermonegrete.gallery.repository.MediaFileRepository
+import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Pageable
 import org.springframework.web.bind.annotation.GetMapping
@@ -12,10 +14,13 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.io.File
 import java.net.InetAddress
-import kotlin.math.ceil
 
 @RestController
-class FoldersController(val repository: FoldersRepository){
+class FoldersController(
+    val repository: FoldersRepository,
+    val mediaFolderRepo: MediaFolderRepository,
+    val mediaFilesRepo: MediaFileRepository,
+){
 
     @Value("\${base.path}")
     private lateinit var basePath: String
@@ -40,46 +45,27 @@ class FoldersController(val repository: FoldersRepository){
 
     @GetMapping("/folders/{subFolder}")
     fun subFolder(@PathVariable subFolder: String): List<ImageFile>{
-        var localFolders = cachedFolders.toList()
 
-        if(localFolders.isEmpty())
-            localFolders = repository.getFolders(basePath)
+        val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder entity for $subFolder not found")
+        val subFolderPath = "http://$ipAddress/images/$subFolder"
 
-        if(subFolder in localFolders){
-            val fileNames = repository.getImages("$basePath/$subFolder")
-
-            val subFolderPath = "http://$ipAddress/images/$subFolder"
-            return fileNames.map {
-                ImageFile("$subFolderPath/${it.url}", it.width, it.height)
-            }
-        }else{
-            throw RuntimeException("Folder path not found")
+        return mediaFolder.files.map {
+            ImageFile("$subFolderPath/${it.filename}", it.width, it.height)
         }
     }
 
     @GetMapping("/folders/{subFolder}", params = ["page"])
     fun subFolder(@PathVariable subFolder: String, @RequestParam("page") page: Int, pageable: Pageable): SimplePage<ImageFile>{
-        var localFolders = cachedFolders.toList()
+        val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder path not found")
 
-        if(localFolders.isEmpty())
-            localFolders = repository.getFolders(basePath)
+        val filesPage = mediaFilesRepo.findAllByFolder(mediaFolder, pageable)
+        val subFolderPath = "http://$ipAddress/images/$subFolder"
 
-        if(subFolder in localFolders){
-            val start = pageable.offset.toInt()
-
-            val imageFiles = repository.getImages("$basePath/$subFolder")
-            val end = (start + pageable.pageSize).coerceAtMost(imageFiles.size)
-
-            val subFolderPath = "http://$ipAddress/images/$subFolder"
-            val subList = imageFiles.subList(start, end)
-            val finalImages = subList.map {
-                ImageFile("$subFolderPath/${it.url}", it.width, it.height)
-            }
-            val totalPages = if (pageable.pageSize == 0) 1 else ceil(imageFiles.size / pageable.pageSize.toDouble()).toInt()
-            return SimplePage(finalImages, totalPages, imageFiles.size)
-        }else{
-            throw RuntimeException("Folder path not found")
+        val finalImages = filesPage.content.map {
+            ImageFile("$subFolderPath/${it.filename}", it.width, it.height)
         }
+
+        return SimplePage(finalImages, filesPage.totalPages, filesPage.totalElements.toInt())
     }
 
     /**

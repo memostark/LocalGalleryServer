@@ -1,7 +1,10 @@
 package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.GetFolderResponse
-import com.guillermonegrete.gallery.data.ImageFile
+import com.guillermonegrete.gallery.data.MediaFile
+import com.guillermonegrete.gallery.data.MediaFolder
+import com.guillermonegrete.gallery.repository.MediaFileRepository
+import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.hamcrest.CoreMatchers.`is`
@@ -9,7 +12,10 @@ import org.hamcrest.collection.IsCollectionWithSize.hasSize
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
@@ -23,8 +29,13 @@ import java.net.InetAddress
 ])
 class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
 
-    @MockkBean
-    private lateinit var foldersRepository: FoldersRepository
+    // For the bean in application class, don't want to run it in these tests
+    @MockkBean(relaxed = true)
+    private lateinit var commandLineRunner: CommandLineRunner
+
+    @MockkBean private lateinit var foldersRepository: FoldersRepository
+    @MockkBean private lateinit var mediaFolderRepository: MediaFolderRepository
+    @MockkBean private lateinit var mediaFileRepository: MediaFileRepository
 
     @Value("\${base.path}")
     private lateinit var path: String
@@ -45,14 +56,35 @@ class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
         val subFolder = "subFolder"
         val ipAddress = InetAddress.getLocalHost().hostAddress
 
-        every { foldersRepository.getFolders(path) } returns listOf(subFolder)
-
-        every { foldersRepository.getImages("$path/$subFolder") } returns listOf(ImageFile("image1", 100, 100))
+        every { mediaFolderRepository.findByName(subFolder) } returns MediaFolder(subFolder, listOf(MediaFile("image1", 100, 100)))
 
         mockMvc.perform(get("/folders/$subFolder")).andDo(print()).andExpect(status().isOk)
                 .andExpect(jsonPath("$", hasSize<Array<Any>>(1)))
                 .andExpect(jsonPath("$[0].url").value("http://$ipAddress/images/$subFolder/image1"))
                 .andExpect(jsonPath("$[0].width").value(100))
                 .andExpect(jsonPath("$[0].height").value(100))
+    }
+
+    @Test
+    fun `Sub folder returns page of image files`(){
+        val subFolder = "subFolder"
+        val ipAddress = InetAddress.getLocalHost().hostAddress
+        val content = List(21) { MediaFile("image$it", 100 + it, 100 + it) }
+
+        val mediaFolder = MediaFolder(subFolder)
+        val pageable = PageRequest.of(0, 20)
+
+        every { mediaFolderRepository.findByName(subFolder) } returns mediaFolder
+
+        every { mediaFileRepository.findAllByFolder(mediaFolder, pageable) } returns PageImpl(content.subList(0, 20), pageable, content.size.toLong())
+
+        // First check the items then total pages and total items
+        mockMvc.perform(get("/folders/$subFolder").param("size", "20").param("page", "0")).andDo(print()).andExpect(status().isOk)
+            .andExpect(jsonPath("$.items", hasSize<Array<Any>>(20)))
+            .andExpect(jsonPath("$.items[0].url").value("http://$ipAddress/images/$subFolder/image0"))
+            .andExpect(jsonPath("$.items[0].width").value(100))
+            .andExpect(jsonPath("$.items[0].height").value(100))
+            .andExpect(jsonPath("$.totalPages").value(2))
+            .andExpect(jsonPath("$.totalItems").value(21))
     }
 }
