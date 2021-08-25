@@ -31,18 +31,32 @@ class GalleryApplication{
                     mediaFolder = MediaFolder(folder)
                     mediaFolderRepo.save(mediaFolder)
                     println("Found new folder: $folder")
-                }
 
-                val files = folderRepository.getImages("$basePath/$folder")
+                    val files = folderRepository.getImages("$basePath/$folder")
 
-                val databaseFileNames = mediaFolder.files.map { it.filename }.toSet()
-                for(file in files){
-                    if(databaseFileNames.contains(file.url)) continue
-                    val mediaFile = MediaFile(file.url, file.width, file.height, mediaFolder)
-                    try {
-                        repository.save(mediaFile)
-                    } catch (e: DataIntegrityViolationException){
-                        // No need to print error, logs are already printed
+                    for(file in files){
+                        val mediaFile = MediaFile(file.url, file.width, file.height, mediaFolder)
+                        try {
+                            repository.save(mediaFile)
+                        } catch (e: DataIntegrityViolationException){
+                            // No need to print error, logs are already printed
+                        }
+                    }
+                }else{
+                    val databaseFileNames = mediaFolder.files.map { it.filename }.toSet()
+
+                    val filenames = folderRepository.getImageNames("$basePath/$folder")
+
+                    for(filename in filenames){
+                        if(databaseFileNames.contains(filename)) continue
+
+                        val imageFile = folderRepository.getImageInfo("$basePath/$folder/$filename") ?: continue
+                        val mediaFile = MediaFile(filename, imageFile.width, imageFile.height, mediaFolder)
+                        try {
+                            repository.save(mediaFile)
+                        } catch (e: DataIntegrityViolationException){
+                            // No need to print error, logs are already printed
+                        }
                     }
                 }
                 println("Processed $folder...")
