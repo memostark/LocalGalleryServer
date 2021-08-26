@@ -2,7 +2,6 @@ package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.ImageFile
 import org.mp4parser.IsoFile
-import org.mp4parser.boxes.iso14496.part12.MovieBox
 import org.mp4parser.boxes.iso14496.part12.TrackBox
 import org.springframework.stereotype.Component
 import java.awt.Dimension
@@ -20,6 +19,16 @@ class DefaultFolderRepository: FoldersRepository {
 
     override fun getFolders(path: String): List<String> {
         return File(path).list()?.toList() ?: emptyList()
+    }
+
+    override fun getImageNames(folder: String): Set<String> {
+        return File(folder).listFiles()?.map { it.name }?.toSet() ?: emptySet()
+    }
+
+    override fun getImageInfo(path: String): ImageFile? {
+        val file = File(path)
+        val dimensions = getImageDimension(file) ?: return null
+        return ImageFile(file.name, dimensions.width, dimensions.height)
     }
 
     override fun getImages(folder: String): List<ImageFile> {
