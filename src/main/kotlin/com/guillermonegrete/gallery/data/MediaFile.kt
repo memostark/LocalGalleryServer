@@ -4,8 +4,10 @@ import javax.persistence.*
 
 
 @Entity
+@Table(uniqueConstraints=[
+    UniqueConstraint(columnNames = ["filename", "folder_id"])
+])
 data class MediaFile(
-    @Column(unique=true)
     val filename: String = "",
     val width: Int = 0,
     val height: Int = 0,

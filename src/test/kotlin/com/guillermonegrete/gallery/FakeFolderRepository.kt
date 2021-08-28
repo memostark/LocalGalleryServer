@@ -19,6 +19,14 @@ class FakeFolderRepository: FoldersRepository {
         else return foldersServiceData
     }
 
+    override fun getImageNames(folder: String): Set<String> {
+        TODO("Not yet implemented")
+    }
+
+    override fun getImageInfo(path: String): ImageFile? {
+        TODO("Not yet implemented")
+    }
+
     override fun getImages(folder: String): List<ImageFile> {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
