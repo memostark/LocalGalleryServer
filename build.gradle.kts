@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
 	id("org.springframework.boot") version "2.2.5.RELEASE"
 	id("io.spring.dependency-management") version "1.0.9.RELEASE"
+	id ("org.flywaydb.flyway") version "7.14.0"
 	kotlin("jvm") version "1.5.0"
 	kotlin("plugin.spring") version "1.3.61"
 }
@@ -29,6 +30,9 @@ dependencies {
 	runtimeOnly("mysql:mysql-connector-java")
 
 	implementation("org.mp4parser:isoparser:1.9.27")
+
+	// Database migration helper
+	implementation("org.flywaydb:flyway-core")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
 		exclude(module = "junit")
@@ -58,4 +62,10 @@ tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {
 	languageVersion = "1.5"
+}
+
+flyway {
+	url = "jdbc:mysql://localhost:3306/db_gallery?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
+	user = "gallery_user"
+	password = ""
 }
