@@ -9,7 +9,9 @@ import javax.persistence.*
 ])
 data class MediaFile(
     val filename: String = "",
+    @Column(nullable = false)
     val width: Int = 0,
+    @Column(nullable = false)
     val height: Int = 0,
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "folder_id")
