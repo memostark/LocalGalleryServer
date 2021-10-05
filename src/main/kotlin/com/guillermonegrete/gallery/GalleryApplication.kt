@@ -18,11 +18,17 @@ class GalleryApplication{
     @Value("\${base.path}")
     private lateinit var basePath: String
 
+    @Value("\${checkfolder}")
+    private var folderCheck: Boolean = false
+
     @Autowired lateinit var service: FolderFetchingService
 
     @Bean
     fun checkFolders(repository: MediaFileRepository, mediaFolderRepo: MediaFolderRepository, folderRepository: FoldersRepository): CommandLineRunner {
         return CommandLineRunner {
+            println("Check folders: $folderCheck")
+            if(!folderCheck) return@CommandLineRunner
+
             val folders = folderRepository.getFolders(basePath)
             for(folder in folders){
                 var mediaFolder = service.getMediaFolder(folder)
