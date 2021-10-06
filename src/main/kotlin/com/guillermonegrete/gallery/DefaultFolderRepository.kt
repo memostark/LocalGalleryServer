@@ -1,13 +1,11 @@
 package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.ImageFile
-import org.mp4parser.IsoFile
-import org.mp4parser.boxes.iso14496.part12.TrackBox
+import net.bramp.ffmpeg.FFprobe
+import net.bramp.ffmpeg.probe.FFmpegStream
 import org.springframework.stereotype.Component
 import java.awt.Dimension
 import java.io.File
-import java.io.FileInputStream
-import java.io.FileNotFoundException
 import java.io.IOException
 import java.lang.RuntimeException
 import javax.imageio.ImageIO
@@ -16,6 +14,9 @@ import javax.imageio.stream.FileImageInputStream
 
 @Component
 class DefaultFolderRepository: FoldersRepository {
+
+    // TODO inject
+    private val ffprobe = FFprobe()
 
     override fun getFolders(path: String): List<String> {
         return File(path).list()?.toList() ?: emptyList()
@@ -65,25 +66,18 @@ class DefaultFolderRepository: FoldersRepository {
             }
         }
 
-        println("Not a known image file: ${imgFile.absoluteFile}")
-        return if(suffix == "mp4") getVideoDimensions(imgFile) else null
+        println("Not a known image file: ${imgFile.absolutePath}")
+        return if(suffix == "mp4") getVideoDimensions(imgFile.absolutePath) else null
     }
 
-    private fun getVideoDimensions(file: File): Dimension?{
+    private fun getVideoDimensions(path: String): Dimension?{
         return try {
-            val fc = FileInputStream(file).channel
-            val isoFile = IsoFile(fc)
-            val moov = isoFile.movieBox
-            for (box in moov.boxes) {
-
-                if(box is TrackBox){
-                    val header = box.trackHeaderBox
-                    val dimension = Dimension(header.width.toInt(), header.height.toInt())
-                    return if(dimension.height != 0 || dimension.width != 0) dimension else null
-                }
+            val probeResult = ffprobe.probe(path)
+            probeResult.streams?.forEach { stream ->
+                if(stream.codec_type == FFmpegStream.CodecType.VIDEO) return Dimension(stream.width, stream.height)
             }
             null
-        }catch (e: FileNotFoundException){
+        }catch (e: IOException){
             println(e.message)
             null
         }catch (e: RuntimeException){
