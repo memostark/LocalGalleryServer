@@ -29,7 +29,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	runtimeOnly("mysql:mysql-connector-java")
 
-	implementation("org.mp4parser:isoparser:1.9.27")
+	implementation("net.bramp.ffmpeg:ffmpeg:0.6.2")
 
 	// Database migration helper
 	implementation("org.flywaydb:flyway-core")

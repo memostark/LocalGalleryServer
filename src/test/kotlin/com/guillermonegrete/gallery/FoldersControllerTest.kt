@@ -5,6 +5,7 @@ import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
+import com.guillermonegrete.gallery.services.FolderFetchingService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.hamcrest.CoreMatchers.`is`
@@ -29,9 +30,10 @@ import java.net.InetAddress
 ])
 class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
 
-    // For the bean in application class, don't want to run it in these tests
+    // For the bean in the application class, don't want to run it in these tests
     @MockkBean(relaxed = true)
     private lateinit var commandLineRunner: CommandLineRunner
+    @MockkBean lateinit var service: FolderFetchingService
 
     @MockkBean private lateinit var foldersRepository: FoldersRepository
     @MockkBean private lateinit var mediaFolderRepository: MediaFolderRepository
