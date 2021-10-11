@@ -68,4 +68,7 @@ flyway {
 	url = "jdbc:mysql://localhost:3306/db_gallery?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
 	user = "gallery_user"
 	password = ""
+
+	// So flyway can find the kotlin based migrations
+	locations = arrayOf("classpath:db/migration")
 }
