@@ -27,7 +27,6 @@ class V2__media_file_inheritance : BaseJavaMigration() {
     @Override
     override fun migrate(context: Context) {
 //        basePath = "c:\\path\\here"
-        basePath = "D:\\Pictures\\tests"
         basePath ?: throw IOException("Folder path not set")
         println("Starting migration to V2")
         println("For folder path: $basePath")
