@@ -1,6 +1,6 @@
 package com.guillermonegrete.gallery
 
-import com.guillermonegrete.gallery.data.ImageFile
+import com.guillermonegrete.gallery.data.MediaFile
 
 interface FoldersRepository {
 
@@ -8,7 +8,7 @@ interface FoldersRepository {
 
     fun getImageNames(folder: String): Set<String>
 
-    fun getImageInfo(path: String): ImageFile?
+    fun getMediaInfo(path: String): MediaFile?
 
-    fun getImages(folder: String): List<ImageFile>
+    fun getMedia(folder: String): List<MediaFile>
 }

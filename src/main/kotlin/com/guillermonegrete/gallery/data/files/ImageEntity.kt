@@ -6,4 +6,8 @@ import javax.persistence.Entity
 
 @Entity
 @DiscriminatorValue("1")
-open class ImageEntity : MediaFile()
+open class ImageEntity(
+    filename: String = "",
+    width: Int = 0,
+    height: Int = 0
+) : MediaFile(filename, width, height)

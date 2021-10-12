@@ -1,10 +1,11 @@
 package com.guillermonegrete.gallery
 
-import com.guillermonegrete.gallery.data.ImageFile
+import com.guillermonegrete.gallery.data.MediaFile
+import com.guillermonegrete.gallery.data.files.ImageEntity
+import com.guillermonegrete.gallery.data.files.VideoEntity
 import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.probe.FFmpegStream
 import org.springframework.stereotype.Component
-import java.awt.Dimension
 import java.io.File
 import java.io.IOException
 import java.lang.RuntimeException
@@ -18,6 +19,8 @@ class DefaultFolderRepository: FoldersRepository {
     // TODO inject
     private val ffprobe = FFprobe()
 
+    private val supportedVideo = setOf("mp4", "webm")
+
     override fun getFolders(path: String): List<String> {
         return File(path).list()?.toList() ?: emptyList()
     }
@@ -26,30 +29,45 @@ class DefaultFolderRepository: FoldersRepository {
         return File(folder).listFiles()?.map { it.name }?.toSet() ?: emptySet()
     }
 
-    override fun getImageInfo(path: String): ImageFile? {
+
+    override fun getMediaInfo(path: String): MediaFile? {
         val file = File(path)
-        val dimensions = getImageDimension(file) ?: return null
-        return ImageFile(file.name, dimensions.width, dimensions.height)
+        val suffix = getSuffix(file) ?: return null
+
+        // First try to get the image info
+        val imageInfo = getImageInfo(suffix, file)
+        if(imageInfo != null) return imageInfo
+
+        // Otherwise, try to get the video info
+        return if(suffix in supportedVideo) getVideoDimensions(path) else null
     }
 
-    override fun getImages(folder: String): List<ImageFile> {
+    override fun getMedia(folder: String): List<MediaFile> {
         return File(folder).listFiles()?.mapNotNull { file ->
-            val dimensions = getImageDimension(file)
-            dimensions?.let { ImageFile(file.name, it.width, it.height) }
+            val suffix = getSuffix(file) ?: return@mapNotNull null
+
+            val image = getImageInfo(suffix, file)
+            return@mapNotNull if(suffix in supportedVideo) getVideoDimensions(file.absolutePath) else null
         } ?: emptyList()
+    }
+
+    private fun getSuffix(imgFile: File): String?{
+        val pos = imgFile.name.lastIndexOf(".")
+        if (pos == -1) {
+            println("No extension for file: ${imgFile.absolutePath}")
+            return null
+        }
+        return imgFile.name.substring(pos + 1)
     }
 
     /**
      * Gets image dimensions for given file
      * @param imgFile image file
      * @return dimensions of image
-     * @throws IOException if the file is not a known image
      */
     @Throws(IOException::class)
-    fun getImageDimension(imgFile: File): Dimension? {
-        val pos = imgFile.name.lastIndexOf(".")
-        if (pos == -1) throw IOException("No extension for file: " + imgFile.absolutePath)
-        val suffix = imgFile.name.substring(pos + 1)
+    fun getImageInfo(suffix: String, imgFile: File): ImageEntity? {
+
         val iter = ImageIO.getImageReadersBySuffix(suffix)
         while (iter.hasNext()) {
             val reader = iter.next()
@@ -58,7 +76,7 @@ class DefaultFolderRepository: FoldersRepository {
                 reader.input = stream
                 val width: Int = reader.getWidth(reader.minIndex)
                 val height: Int = reader.getHeight(reader.minIndex)
-                return Dimension(width, height)
+                return ImageEntity(imgFile.name, width, height)
             } catch (e: IOException) {
                 println("Error reading: ${imgFile.absoluteFile}, $e")
             } finally {
@@ -67,14 +85,15 @@ class DefaultFolderRepository: FoldersRepository {
         }
 
         println("Not a known image file: ${imgFile.absolutePath}")
-        return if(suffix == "mp4") getVideoDimensions(imgFile.absolutePath) else null
+        return null
     }
 
-    private fun getVideoDimensions(path: String): Dimension?{
+    private fun getVideoDimensions(path: String): VideoEntity?{
         return try {
             val probeResult = ffprobe.probe(path)
             probeResult.streams?.forEach { stream ->
-                if(stream.codec_type == FFmpegStream.CodecType.VIDEO) return Dimension(stream.width, stream.height)
+                // Add only the file name, not the full path
+                if(stream.codec_type == FFmpegStream.CodecType.VIDEO) return VideoEntity(File(path).name, stream.width, stream.height, probeResult.format.duration.toInt())
             }
             null
         }catch (e: IOException){

@@ -6,4 +6,9 @@ import javax.persistence.Entity
 
 @Entity
 @DiscriminatorValue("2")
-open class VideoEntity(val duration: Int = 0) : MediaFile()
+open class VideoEntity(
+    filename: String = "",
+    width: Int = 0,
+    height: Int = 0,
+    val duration: Int = 0
+) : MediaFile(filename, width, height)

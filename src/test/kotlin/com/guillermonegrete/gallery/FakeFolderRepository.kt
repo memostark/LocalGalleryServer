@@ -1,6 +1,6 @@
 package com.guillermonegrete.gallery
 
-import com.guillermonegrete.gallery.data.ImageFile
+import com.guillermonegrete.gallery.data.MediaFile
 import org.assertj.core.util.VisibleForTesting
 import java.lang.RuntimeException
 
@@ -23,11 +23,11 @@ class FakeFolderRepository: FoldersRepository {
         TODO("Not yet implemented")
     }
 
-    override fun getImageInfo(path: String): ImageFile? {
+    override fun getMediaInfo(path: String): MediaFile? {
         TODO("Not yet implemented")
     }
 
-    override fun getImages(folder: String): List<ImageFile> {
+    override fun getMedia(folder: String): List<MediaFile> {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
