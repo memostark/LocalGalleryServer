@@ -10,4 +10,8 @@ data class MediaFolder(
     var files: List<MediaFile> = emptyList(),
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     val id: Long = 0,
-)
+) {
+    override fun toString(): String {
+        return "{name: $name, id: $id}"
+    }
+}
