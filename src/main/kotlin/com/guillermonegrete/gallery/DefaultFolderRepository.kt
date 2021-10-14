@@ -32,23 +32,11 @@ class DefaultFolderRepository: FoldersRepository {
 
     override fun getMediaInfo(path: String): MediaFile? {
         val file = File(path)
-        val suffix = getSuffix(file) ?: return null
-
-        // First try to get the image info
-        val imageInfo = getImageInfo(suffix, file)
-        if(imageInfo != null) return imageInfo
-
-        // Otherwise, try to get the video info
-        return if(suffix in supportedVideo) getVideoDimensions(path) else null
+       return getMediaFile(file)
     }
 
     override fun getMedia(folder: String): List<MediaFile> {
-        return File(folder).listFiles()?.mapNotNull { file ->
-            val suffix = getSuffix(file) ?: return@mapNotNull null
-
-            val image = getImageInfo(suffix, file)
-            return@mapNotNull if(suffix in supportedVideo) getVideoDimensions(file.absolutePath) else null
-        } ?: emptyList()
+        return File(folder).listFiles()?.mapNotNull { file -> getMediaFile(file) } ?: emptyList()
     }
 
     private fun getSuffix(imgFile: File): String?{
@@ -58,6 +46,17 @@ class DefaultFolderRepository: FoldersRepository {
             return null
         }
         return imgFile.name.substring(pos + 1)
+    }
+
+    fun getMediaFile(file: File): MediaFile? {
+        val suffix = getSuffix(file) ?: return null
+
+        // First try to get the image info
+        val imageInfo = getImageInfo(suffix, file)
+        if(imageInfo != null) return imageInfo
+
+        // Otherwise, try to get the video info
+        return if(suffix in supportedVideo) getVideoDimensions(file.absolutePath) else null
     }
 
     /**
