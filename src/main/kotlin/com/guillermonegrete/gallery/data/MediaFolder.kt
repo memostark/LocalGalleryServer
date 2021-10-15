@@ -6,8 +6,12 @@ import javax.persistence.*
 data class MediaFolder(
     @Column(unique = true)
     val name: String = "",
-    @OneToMany(mappedBy = "folder", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    @OneToMany(targetEntity=MediaFile::class, mappedBy = "folder", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var files: List<MediaFile> = emptyList(),
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     val id: Long = 0,
-)
+) {
+    override fun toString(): String {
+        return "{name: $name, id: $id}"
+    }
+}

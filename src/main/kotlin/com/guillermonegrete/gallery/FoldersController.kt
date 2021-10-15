@@ -56,7 +56,7 @@ class FoldersController(
 
     @GetMapping("/folders/{subFolder}", params = ["page"])
     fun subFolder(@PathVariable subFolder: String, @RequestParam("page") page: Int, pageable: Pageable): SimplePage<ImageFile>{
-        val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder path not found")
+        val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder path $subFolder  not found")
 
         val filesPage = mediaFilesRepo.findAllByFolder(mediaFolder, pageable)
         val subFolderPath = "http://$ipAddress/images/$subFolder"

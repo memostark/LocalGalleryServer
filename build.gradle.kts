@@ -1,11 +1,11 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-	id("org.springframework.boot") version "2.2.5.RELEASE"
+	id("org.springframework.boot") version "2.4.11"
 	id("io.spring.dependency-management") version "1.0.9.RELEASE"
 	id ("org.flywaydb.flyway") version "7.14.0"
 	kotlin("jvm") version "1.5.0"
-	kotlin("plugin.spring") version "1.3.61"
+	kotlin("plugin.spring") version "1.5.0"
 }
 
 group = "com.guillermonegrete"
@@ -68,4 +68,7 @@ flyway {
 	url = "jdbc:mysql://localhost:3306/db_gallery?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
 	user = "gallery_user"
 	password = ""
+
+	// So flyway can find the kotlin based migrations
+	locations = arrayOf("classpath:db/migration")
 }

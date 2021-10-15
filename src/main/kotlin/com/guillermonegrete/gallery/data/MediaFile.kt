@@ -4,10 +4,13 @@ import javax.persistence.*
 
 
 @Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name="file_type",
+    discriminatorType = DiscriminatorType.INTEGER)
 @Table(uniqueConstraints=[
     UniqueConstraint(columnNames = ["filename", "folder_id"])
 ])
-data class MediaFile(
+open class MediaFile(
     val filename: String = "",
     @Column(nullable = false)
     val width: Int = 0,
