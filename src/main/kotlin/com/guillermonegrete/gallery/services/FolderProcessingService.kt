@@ -35,7 +35,6 @@ class FolderProcessingService(
                     file.folder = savedFolder
                     try {
                         fileEntityRepo.save(file)
-                        println("Saved: $file")
                     } catch (e: DataIntegrityViolationException){
                         println("Duplicate file in database ${file.filename}")
                     }

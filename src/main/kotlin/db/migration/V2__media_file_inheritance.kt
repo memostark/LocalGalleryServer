@@ -33,7 +33,7 @@ class V2__media_file_inheritance : BaseJavaMigration() {
 
         val template = JdbcTemplate(SingleConnectionDataSource(context.connection, true))
         val query: List<SimpleMediaFolder> = template
-            .query(/* language=sql */ "SELECT * FROM db_gallery_test.media_folder;", DataClassRowMapper(SimpleMediaFolder::class.java))
+            .query(/* language=sql */ "SELECT * FROM db_gallery.media_folder;", DataClassRowMapper(SimpleMediaFolder::class.java))
 
         println("Got queries: $query")
 
@@ -47,7 +47,7 @@ class V2__media_file_inheritance : BaseJavaMigration() {
             val folderPath = "$basePath/${folder.name}"
             println("Processing folder: $folderPath")
             val fileQuery: List<SimpleMediaFile> = template
-                .query(/* language=sql */ "SELECT * FROM db_gallery_test.media_file WHERE folder_id = ?;", DataClassRowMapper(SimpleMediaFile::class.java), folder.id)
+                .query(/* language=sql */ "SELECT * FROM db_gallery.media_file WHERE folder_id = ?;", DataClassRowMapper(SimpleMediaFile::class.java), folder.id)
 
             fileQuery.forEach { mediaFile ->
                 val fullPath = "$folderPath/${mediaFile.filename}"
@@ -64,11 +64,11 @@ class V2__media_file_inheritance : BaseJavaMigration() {
 
                     // File type 0 for images and 1 for video
                     if(isImage(file, suffix)){
-                        template.execute(/* language=sql */ "UPDATE db_gallery_test.media_file SET file_type = 1 WHERE id = ${mediaFile.id};")
+                        template.execute(/* language=sql */ "UPDATE db_gallery.media_file SET file_type = 1 WHERE id = ${mediaFile.id};")
                     } else if(suffix in setOf("mp4", "webm")) {
                         val duration = getDuration(fullPath)
                         if (duration != null)
-                            template.execute(/* language=sql */ "UPDATE db_gallery_test.media_file SET file_type = 2, duration = $duration WHERE id = ${mediaFile.id};")
+                            template.execute(/* language=sql */ "UPDATE db_gallery.media_file SET file_type = 2, duration = $duration WHERE id = ${mediaFile.id};")
 
                     }
 
