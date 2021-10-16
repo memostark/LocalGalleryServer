@@ -3,6 +3,7 @@ package com.guillermonegrete.gallery
 import com.guillermonegrete.gallery.data.GetFolderResponse
 import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.MediaFolder
+import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.services.FolderFetchingService
@@ -15,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.test.context.TestPropertySource
@@ -88,5 +91,11 @@ class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
             .andExpect(jsonPath("$.items[0].height").value(100))
             .andExpect(jsonPath("$.totalPages").value(2))
             .andExpect(jsonPath("$.totalItems").value(21))
+    }
+
+    @TestConfiguration
+    internal class InnerConfig{
+        @Bean
+        fun fileMapper() = FileMapper()
     }
 }
