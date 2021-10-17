@@ -2,8 +2,9 @@ package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.Folder
 import com.guillermonegrete.gallery.data.GetFolderResponse
-import com.guillermonegrete.gallery.data.ImageFile
 import com.guillermonegrete.gallery.data.SimplePage
+import com.guillermonegrete.gallery.data.files.FileMapper
+import com.guillermonegrete.gallery.data.files.dto.FileDTO
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import org.springframework.beans.factory.annotation.Value
@@ -20,6 +21,7 @@ class FoldersController(
     val repository: FoldersRepository,
     val mediaFolderRepo: MediaFolderRepository,
     val mediaFilesRepo: MediaFileRepository,
+    val fileMapper: FileMapper
 ){
 
     @Value("\${base.path}")
@@ -44,28 +46,28 @@ class FoldersController(
     }
 
     @GetMapping("/folders/{subFolder}")
-    fun subFolder(@PathVariable subFolder: String): List<ImageFile>{
+    fun subFolder(@PathVariable subFolder: String): List<FileDTO>{
 
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder entity for $subFolder not found")
         val subFolderPath = "http://$ipAddress/images/$subFolder"
 
         return mediaFolder.files.map {
-            ImageFile("$subFolderPath/${it.filename}", it.width, it.height)
+            fileMapper.toDto(it, "$subFolderPath/${it.filename}")
         }
     }
 
     @GetMapping("/folders/{subFolder}", params = ["page"])
-    fun subFolder(@PathVariable subFolder: String, @RequestParam("page") page: Int, pageable: Pageable): SimplePage<ImageFile>{
+    fun subFolder(@PathVariable subFolder: String, @RequestParam("page") page: Int, pageable: Pageable): SimplePage<FileDTO>{
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder path $subFolder  not found")
 
         val filesPage = mediaFilesRepo.findAllByFolder(mediaFolder, pageable)
         val subFolderPath = "http://$ipAddress/images/$subFolder"
 
-        val finalImages = filesPage.content.map {
-            ImageFile("$subFolderPath/${it.filename}", it.width, it.height)
+        val finalFiles = filesPage.content.map {
+            fileMapper.toDto(it, "$subFolderPath/${it.filename}")
         }
 
-        return SimplePage(finalImages, filesPage.totalPages, filesPage.totalElements.toInt())
+        return SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
     }
 
     /**
