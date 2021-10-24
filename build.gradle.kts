@@ -65,7 +65,7 @@ compileKotlin.kotlinOptions {
 }
 
 flyway {
-	url = "jdbc:mysql://localhost:3306/db_gallery?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
+	url = "jdbc:mysql://localhost:3306/db_gallery_test?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
 	user = "gallery_user"
 	password = ""
 
