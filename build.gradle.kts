@@ -28,6 +28,8 @@ dependencies {
 	// Mysql with jpa
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	runtimeOnly("mysql:mysql-connector-java")
+	// For testing
+	runtimeOnly("com.h2database:h2")
 
 	implementation("net.bramp.ffmpeg:ffmpeg:0.6.2")
 
