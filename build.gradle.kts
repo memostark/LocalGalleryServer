@@ -71,4 +71,5 @@ flyway {
 
 	// So flyway can find the kotlin based migrations
 	locations = arrayOf("classpath:db/migration")
+	placeholders = mutableMapOf<Any, Any>("base_path" to System.getenv("BASE_PATH"))
 }
