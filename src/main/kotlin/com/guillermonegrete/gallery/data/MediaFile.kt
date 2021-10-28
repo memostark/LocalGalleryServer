@@ -1,5 +1,6 @@
 package com.guillermonegrete.gallery.data
 
+import java.time.Instant
 import javax.persistence.*
 
 
@@ -16,6 +17,10 @@ open class MediaFile(
     val width: Int = 0,
     @Column(nullable = false)
     val height: Int = 0,
+    @Column(name = "creation_date", nullable = false)
+    val creationDate: Instant = Instant.now(),
+    @Column(name = "last_modified", nullable = false)
+    val lastModified: Instant = Instant.now(),
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "folder_id")
     var folder: MediaFolder = MediaFolder(),

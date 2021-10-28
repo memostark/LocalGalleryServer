@@ -92,7 +92,7 @@ class DefaultFolderRepository: FoldersRepository {
             val probeResult = ffprobe.probe(path)
             probeResult.streams?.forEach { stream ->
                 // Add only the file name, not the full path
-                if(stream.codec_type == FFmpegStream.CodecType.VIDEO) return VideoEntity(File(path).name, stream.width, stream.height, probeResult.format.duration.toInt())
+                if(stream.codec_type == FFmpegStream.CodecType.VIDEO) return VideoEntity(File(path).name, stream.width, stream.height, duration = probeResult.format.duration.toInt())
             }
             null
         }catch (e: IOException){
