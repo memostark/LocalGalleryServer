@@ -28,6 +28,6 @@ open class MediaFile(
     val id: Long = 0
 ){
     override fun toString(): String {
-        return "{name: $filename, width: $width, height: $height, folder: ${folder.name}}"
+        return "{name: $filename, width: $width, height: $height, folder: ${folder.name}, creation_date: $creationDate, lastModified: $lastModified}"
     }
 }

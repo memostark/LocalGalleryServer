@@ -1,6 +1,6 @@
 package db.migration
 
-import com.guillermonegrete.gallery.services.GetImageInfoService
+import com.guillermonegrete.gallery.services.GetFileInfoService
 import org.flywaydb.core.api.migration.BaseJavaMigration
 import org.flywaydb.core.api.migration.Context
 import org.springframework.jdbc.core.DataClassRowMapper
@@ -18,7 +18,7 @@ class V3__file_timestamps: BaseJavaMigration() {
 
     private lateinit var basePath: String
 
-    private val imageInfoService = GetImageInfoService()
+    private val imageInfoService = GetFileInfoService()
 
     override fun migrate(context: Context) {
         println("On migration to v3")

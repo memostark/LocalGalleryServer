@@ -3,21 +3,16 @@ package com.guillermonegrete.gallery
 import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.files.ImageEntity
 import com.guillermonegrete.gallery.data.files.VideoEntity
-import net.bramp.ffmpeg.FFprobe
-import net.bramp.ffmpeg.probe.FFmpegStream
+import com.guillermonegrete.gallery.services.GetFileInfoService
 import org.springframework.stereotype.Component
 import java.io.File
 import java.io.IOException
-import java.lang.RuntimeException
-import javax.imageio.ImageIO
-import javax.imageio.stream.FileImageInputStream
+import java.nio.file.Paths
+import java.time.Instant
 
 
 @Component
-class DefaultFolderRepository: FoldersRepository {
-
-    // TODO inject
-    private val ffprobe = FFprobe()
+class DefaultFolderRepository(private val infoService: GetFileInfoService): FoldersRepository {
 
     private val supportedVideo = setOf("mp4", "webm")
 
@@ -48,7 +43,7 @@ class DefaultFolderRepository: FoldersRepository {
         return imgFile.name.substring(pos + 1)
     }
 
-    fun getMediaFile(file: File): MediaFile? {
+    private fun getMediaFile(file: File): MediaFile? {
         val suffix = getSuffix(file) ?: return null
 
         // First try to get the image info
@@ -56,7 +51,11 @@ class DefaultFolderRepository: FoldersRepository {
         if(imageInfo != null) return imageInfo
 
         // Otherwise, try to get the video info
-        return if(suffix in supportedVideo) getVideoDimensions(file.absolutePath) else null
+        return if(suffix in supportedVideo) {
+            val videoInfo = infoService.getVideoDimensions(file.absolutePath) ?: return null
+            val creationDate = infoService.getCreationDate(Paths.get(file.absolutePath)) ?: Instant.now()
+            VideoEntity(file.name, videoInfo.width, videoInfo.height, creationDate, duration = videoInfo.duration)
+        } else null
     }
 
     /**
@@ -65,42 +64,10 @@ class DefaultFolderRepository: FoldersRepository {
      * @return dimensions of image
      */
     @Throws(IOException::class)
-    fun getImageInfo(suffix: String, imgFile: File): ImageEntity? {
+    private fun getImageInfo(suffix: String, imgFile: File): ImageEntity? {
+        val creationDate = infoService.getCreationDate(Paths.get(imgFile.absolutePath)) ?: Instant.now()
+        val size = infoService.getImageSize(suffix, imgFile)
 
-        val iter = ImageIO.getImageReadersBySuffix(suffix)
-        while (iter.hasNext()) {
-            val reader = iter.next()
-            try {
-                val stream = FileImageInputStream(imgFile)
-                reader.input = stream
-                val width: Int = reader.getWidth(reader.minIndex)
-                val height: Int = reader.getHeight(reader.minIndex)
-                return ImageEntity(imgFile.name, width, height)
-            } catch (e: IOException) {
-                println("Error reading: ${imgFile.absoluteFile}, $e")
-            } finally {
-                reader.dispose()
-            }
-        }
-
-        println("Not a known image file: ${imgFile.absolutePath}")
-        return null
-    }
-
-    private fun getVideoDimensions(path: String): VideoEntity?{
-        return try {
-            val probeResult = ffprobe.probe(path)
-            probeResult.streams?.forEach { stream ->
-                // Add only the file name, not the full path
-                if(stream.codec_type == FFmpegStream.CodecType.VIDEO) return VideoEntity(File(path).name, stream.width, stream.height, duration = probeResult.format.duration.toInt())
-            }
-            null
-        }catch (e: IOException){
-            println(e.message)
-            null
-        }catch (e: RuntimeException){
-            println(e.message)
-            null
-        }
+        return if(size != null) ImageEntity(imgFile.name, size.width, size.height, creationDate) else null
     }
 }
