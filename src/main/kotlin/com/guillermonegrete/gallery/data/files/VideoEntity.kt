@@ -13,5 +13,5 @@ open class VideoEntity(
     height: Int = 0,
     creationDate: Instant = Instant.now(),
     lastModified: Instant = Instant.now(),
-    val duration: Int = 0
+    open val duration: Int = 0
 ) : MediaFile(filename, width, height, creationDate, lastModified)
