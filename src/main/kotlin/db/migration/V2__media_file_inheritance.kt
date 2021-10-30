@@ -26,14 +26,14 @@ class V2__media_file_inheritance : BaseJavaMigration() {
 
     @Override
     override fun migrate(context: Context) {
-//        basePath = "c:\\path\\here"
-        basePath ?: throw IOException("Folder path not set")
         println("Starting migration to V2")
+        basePath = context.configuration.placeholders["base_path"]
+            ?: throw ExceptionInInitializerError("Folder path not set, please set BASE_PATH environment variable or in the application properties")
         println("For folder path: $basePath")
 
         val template = JdbcTemplate(SingleConnectionDataSource(context.connection, true))
         val query: List<SimpleMediaFolder> = template
-            .query(/* language=sql */ "SELECT * FROM db_gallery.media_folder;", DataClassRowMapper(SimpleMediaFolder::class.java))
+            .query(/* language=sql */ "SELECT * FROM media_folder;", DataClassRowMapper(SimpleMediaFolder::class.java))
 
         println("Got queries: $query")
 
@@ -47,7 +47,7 @@ class V2__media_file_inheritance : BaseJavaMigration() {
             val folderPath = "$basePath/${folder.name}"
             println("Processing folder: $folderPath")
             val fileQuery: List<SimpleMediaFile> = template
-                .query(/* language=sql */ "SELECT * FROM db_gallery.media_file WHERE folder_id = ?;", DataClassRowMapper(SimpleMediaFile::class.java), folder.id)
+                .query(/* language=sql */ "SELECT * FROM media_file WHERE folder_id = ?;", DataClassRowMapper(SimpleMediaFile::class.java), folder.id)
 
             fileQuery.forEach { mediaFile ->
                 val fullPath = "$folderPath/${mediaFile.filename}"
@@ -64,11 +64,11 @@ class V2__media_file_inheritance : BaseJavaMigration() {
 
                     // File type 0 for images and 1 for video
                     if(isImage(file, suffix)){
-                        template.execute(/* language=sql */ "UPDATE db_gallery.media_file SET file_type = 1 WHERE id = ${mediaFile.id};")
+                        template.execute(/* language=sql */ "UPDATE media_file SET file_type = 1 WHERE id = ${mediaFile.id};")
                     } else if(suffix in setOf("mp4", "webm")) {
                         val duration = getDuration(fullPath)
                         if (duration != null)
-                            template.execute(/* language=sql */ "UPDATE db_gallery.media_file SET file_type = 2, duration = $duration WHERE id = ${mediaFile.id};")
+                            template.execute(/* language=sql */ "UPDATE media_file SET file_type = 2, duration = $duration WHERE id = ${mediaFile.id};")
 
                     }
 
@@ -113,6 +113,9 @@ class V2__media_file_inheritance : BaseJavaMigration() {
         }
     }
 
+    /**
+     * Media folder without the one-to-many relationship
+     */
     data class SimpleMediaFolder(val id: Long, val name: String)
     data class SimpleMediaFile(val id: Long, val filename: String, val width: Int, val height: Int, val folder_id: Int)
 }
