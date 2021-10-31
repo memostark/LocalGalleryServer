@@ -11,9 +11,9 @@ class FileMapper {
 
     fun toDto(entity: MediaFile, url: String): FileDTO {
         return when(entity){
-            is VideoEntity -> VideoFileDTO(url, entity.width, entity.height, entity.duration)
-            is ImageEntity -> ImageFileDTO(url, entity.width, entity.height)
-            else -> ImageFileDTO(url, entity.width, entity.height)
+            is VideoEntity -> VideoFileDTO(url, entity.width, entity.height, entity.creationDate, entity.lastModified, entity.duration)
+            is ImageEntity -> ImageFileDTO(url, entity.width, entity.height, entity.creationDate, entity.lastModified)
+            else -> ImageFileDTO(url, entity.width, entity.height, entity.creationDate, entity.lastModified)
         }
     }
 }

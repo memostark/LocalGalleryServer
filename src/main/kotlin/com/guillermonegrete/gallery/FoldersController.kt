@@ -70,6 +70,18 @@ class FoldersController(
         return SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
     }
 
+    @GetMapping("/files")
+    fun files(pageable: Pageable): SimplePage<FileDTO>{
+        val filesPage = mediaFilesRepo.findAll(pageable)
+
+        val finalFiles = filesPage.content.map {
+            val subFolderPath = "http://$ipAddress/images/${it.folder.name}/${it.filename}"
+            fileMapper.toDto(it, subFolderPath)
+        }
+
+        return SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
+    }
+
     /**
      * Gets the first filename that is a image of the given list.
      */
