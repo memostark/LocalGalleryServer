@@ -2,6 +2,7 @@ package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.Folder
 import com.guillermonegrete.gallery.data.GetFolderResponse
+import com.guillermonegrete.gallery.data.PagedFolderResponse
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
@@ -45,6 +46,20 @@ class FoldersController(
         return GetFolderResponse(File(basePath).nameWithoutExtension, folders)
     }
 
+    @GetMapping("/folders", params = ["page"])
+    fun folders(pageable: Pageable): PagedFolderResponse{
+        val folders = mediaFolderRepo.findAll(pageable)
+
+        val finalFolders = folders.content.map { folder ->
+            val firstFilename = folder.files.firstOrNull()?.filename ?: ""
+            val coverUrl = "http://$ipAddress/images/${folder.name}/$firstFilename"
+
+            Folder(folder.name, coverUrl, folder.files.size)
+        }
+
+        return PagedFolderResponse(File(basePath).nameWithoutExtension, SimplePage(finalFolders, folders.totalPages, folders.totalElements.toInt()))
+    }
+
     @GetMapping("/folders/{subFolder}")
     fun subFolder(@PathVariable subFolder: String): List<FileDTO>{
 
@@ -59,6 +74,7 @@ class FoldersController(
     @GetMapping("/folders/{subFolder}", params = ["page"])
     fun subFolder(@PathVariable subFolder: String, @RequestParam("page") page: Int, pageable: Pageable): SimplePage<FileDTO>{
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder path $subFolder not found")
+        println("Request for subfolder: $subFolder with page params: $pageable")
 
         val filesPage = mediaFilesRepo.findAllByFolder(mediaFolder, pageable)
         val subFolderPath = "http://$ipAddress/images/$subFolder"
