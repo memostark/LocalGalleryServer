@@ -13,5 +13,5 @@ data class GetFolderResponse(
 
 data class PagedFolderResponse(
         val name: String,
-        val folders: SimplePage<Folder>
+        val page: SimplePage<Folder>
 )

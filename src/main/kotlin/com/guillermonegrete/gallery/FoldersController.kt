@@ -29,24 +29,7 @@ class FoldersController(
     private lateinit var basePath: String
     private val ipAddress: String by lazy { getLocalIpAddress() }
 
-    private var cachedFolders = emptyList<String>()
-
     @GetMapping("/folders")
-    fun rootFolders(): GetFolderResponse{
-        cachedFolders = repository.getFolders(basePath)
-
-        val folders = cachedFolders.map {
-            val folder = repository.getFolders("$basePath/$it")
-            val coverFilename = getFirstImageFile(folder)
-            val coverUrl = "http://$ipAddress/images/$it/$coverFilename"
-
-            Folder(it, coverUrl, folder.size)
-        }
-
-        return GetFolderResponse(File(basePath).nameWithoutExtension, folders)
-    }
-
-    @GetMapping("/folders", params = ["page"])
     fun folders(pageable: Pageable): PagedFolderResponse{
         val folders = mediaFolderRepo.findAll(pageable)
 
@@ -74,7 +57,6 @@ class FoldersController(
     @GetMapping("/folders/{subFolder}", params = ["page"])
     fun subFolder(@PathVariable subFolder: String, @RequestParam("page") page: Int, pageable: Pageable): SimplePage<FileDTO>{
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder path $subFolder not found")
-        println("Request for subfolder: $subFolder with page params: $pageable")
 
         val filesPage = mediaFilesRepo.findAllByFolder(mediaFolder, pageable)
         val subFolderPath = "http://$ipAddress/images/$subFolder"
