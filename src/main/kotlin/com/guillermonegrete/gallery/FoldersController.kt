@@ -1,7 +1,6 @@
 package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.Folder
-import com.guillermonegrete.gallery.data.GetFolderResponse
 import com.guillermonegrete.gallery.data.PagedFolderResponse
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
@@ -19,7 +18,6 @@ import java.net.InetAddress
 
 @RestController
 class FoldersController(
-    val repository: FoldersRepository,
     val mediaFolderRepo: MediaFolderRepository,
     val mediaFilesRepo: MediaFileRepository,
     val fileMapper: FileMapper
@@ -30,8 +28,8 @@ class FoldersController(
     private val ipAddress: String by lazy { getLocalIpAddress() }
 
     @GetMapping("/folders")
-    fun folders(pageable: Pageable): PagedFolderResponse{
-        val folders = mediaFolderRepo.findAll(pageable)
+    fun folders(@RequestParam(required = false) query: String?, pageable: Pageable): PagedFolderResponse{
+        val folders = if(query == null) mediaFolderRepo.findAll(pageable) else mediaFolderRepo.findByNameContaining(query, pageable)
 
         val finalFolders = folders.content.map { folder ->
             val firstFilename = folder.files.firstOrNull()?.filename ?: ""
