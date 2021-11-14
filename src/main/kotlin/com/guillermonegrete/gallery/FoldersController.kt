@@ -1,7 +1,7 @@
 package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.Folder
-import com.guillermonegrete.gallery.data.GetFolderResponse
+import com.guillermonegrete.gallery.data.PagedFolderResponse
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
@@ -18,7 +18,6 @@ import java.net.InetAddress
 
 @RestController
 class FoldersController(
-    val repository: FoldersRepository,
     val mediaFolderRepo: MediaFolderRepository,
     val mediaFilesRepo: MediaFileRepository,
     val fileMapper: FileMapper
@@ -28,21 +27,18 @@ class FoldersController(
     private lateinit var basePath: String
     private val ipAddress: String by lazy { getLocalIpAddress() }
 
-    private var cachedFolders = emptyList<String>()
-
     @GetMapping("/folders")
-    fun rootFolders(): GetFolderResponse{
-        cachedFolders = repository.getFolders(basePath)
+    fun folders(@RequestParam(required = false) query: String?, pageable: Pageable): PagedFolderResponse{
+        val folders = if(query == null) mediaFolderRepo.findAll(pageable) else mediaFolderRepo.findByNameContaining(query, pageable)
 
-        val folders = cachedFolders.map {
-            val folder = repository.getFolders("$basePath/$it")
-            val coverFilename = getFirstImageFile(folder)
-            val coverUrl = "http://$ipAddress/images/$it/$coverFilename"
+        val finalFolders = folders.content.map { folder ->
+            val firstFilename = folder.files.firstOrNull()?.filename ?: ""
+            val coverUrl = "http://$ipAddress/images/${folder.name}/$firstFilename"
 
-            Folder(it, coverUrl, folder.size)
+            Folder(folder.name, coverUrl, folder.files.size)
         }
 
-        return GetFolderResponse(File(basePath).nameWithoutExtension, folders)
+        return PagedFolderResponse(File(basePath).nameWithoutExtension, SimplePage(finalFolders, folders.totalPages, folders.totalElements.toInt()))
     }
 
     @GetMapping("/folders/{subFolder}")
