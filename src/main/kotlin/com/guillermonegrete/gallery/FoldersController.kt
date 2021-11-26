@@ -1,6 +1,7 @@
 package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.data.Folder
+import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.data.PagedFolderResponse
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
@@ -8,6 +9,8 @@ import com.guillermonegrete.gallery.data.files.dto.FileDTO
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -29,7 +32,7 @@ class FoldersController(
 
     @GetMapping("/folders")
     fun folders(@RequestParam(required = false) query: String?, pageable: Pageable): PagedFolderResponse{
-        val folders = if(query == null) mediaFolderRepo.findAll(pageable) else mediaFolderRepo.findByNameContaining(query, pageable)
+        val folders = if(query == null) getFolderPage(pageable) else mediaFolderRepo.findByNameContaining(query, pageable)
 
         val finalFolders = folders.content.map { folder ->
             val firstFilename = folder.files.firstOrNull()?.filename ?: ""
@@ -87,6 +90,20 @@ class FoldersController(
         } ?: ""
     }
 
+    /**
+     * Returns the page by the give pageable
+     */
+    fun getFolderPage(pageable: Pageable): Page<MediaFolder> {
+        val sort = pageable.sort.firstOrNull()
+        return if(sort?.property == "count") {
+            // Sorting by child count is a special case because it's not an entity column
+            // Created pageable without the "count" sort field, otherwise it will produce an error
+            val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
+            if(sort.isDescending) mediaFolderRepo.findAllMediaFolderByFileCountDesc(newPageable)  else mediaFolderRepo.findAllMediaFolderByFileCountAsc(newPageable)
+        } else {
+            mediaFolderRepo.findAll(pageable)
+        }
+    }
 
     fun getLocalIpAddress(): String{
         val inetAddress = InetAddress.getLocalHost()
