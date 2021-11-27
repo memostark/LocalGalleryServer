@@ -32,7 +32,7 @@ class FoldersController(
 
     @GetMapping("/folders")
     fun folders(@RequestParam(required = false) query: String?, pageable: Pageable): PagedFolderResponse{
-        val folders = if(query == null) getFolderPage(pageable) else mediaFolderRepo.findByNameContaining(query, pageable)
+        val folders = if(query == null) getFolderPage(pageable) else getFolderPage(query, pageable)
 
         val finalFolders = folders.content.map { folder ->
             val firstFilename = folder.files.firstOrNull()?.filename ?: ""
@@ -91,9 +91,9 @@ class FoldersController(
     }
 
     /**
-     * Returns the page by the give pageable
+     * Returns the page of folders by the given pageable.
      */
-    fun getFolderPage(pageable: Pageable): Page<MediaFolder> {
+    private fun getFolderPage(pageable: Pageable): Page<MediaFolder> {
         val sort = pageable.sort.firstOrNull()
         return if(sort?.property == "count") {
             // Sorting by child count is a special case because it's not an entity column
@@ -102,6 +102,20 @@ class FoldersController(
             if(sort.isDescending) mediaFolderRepo.findAllMediaFolderByFileCountDesc(newPageable)  else mediaFolderRepo.findAllMediaFolderByFileCountAsc(newPageable)
         } else {
             mediaFolderRepo.findAll(pageable)
+        }
+    }
+
+    /**
+     * Returns the page of folders by the given pageable that contains the query in the name.
+     */
+    fun getFolderPage(query: String, pageable: Pageable): Page<MediaFolder> {
+        val sort = pageable.sort.firstOrNull()
+        return if(sort?.property == "count") {
+            val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
+            if(sort.isDescending)
+                mediaFolderRepo.findByNameContainingAndFileCountDesc(query, newPageable) else mediaFolderRepo.findByNameContainingAndFileCountAsc(query, newPageable)
+        } else {
+            mediaFolderRepo.findByNameContaining(query, pageable)
         }
     }
 
