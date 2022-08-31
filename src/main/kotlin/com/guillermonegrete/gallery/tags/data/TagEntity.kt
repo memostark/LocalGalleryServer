@@ -17,8 +17,13 @@ open class TagEntity {
     /**
      * A tag can be applied to many files.
      */
-    @ManyToMany(targetEntity = MediaFile::class)
-    open var files: Set<MediaFile> = setOf()
+    @ManyToMany
+    @JoinTable(
+        name = "media_tags",
+        joinColumns = [JoinColumn(name = "tag_id", referencedColumnName = "id")],
+        inverseJoinColumns = [JoinColumn(name = "media_id", referencedColumnName = "id")]
+    )
+    open val files: Set<MediaFile> = setOf()
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     open val id: Long = 0

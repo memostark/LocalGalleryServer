@@ -22,8 +22,8 @@ open class MediaFile(
     open val creationDate: Instant = Instant.now(),
     @Column(name = "last_modified", nullable = false)
     open val lastModified: Instant = Instant.now(),
-    @ManyToMany(targetEntity = TagEntity::class)
-    open var tags: Set<MediaFile> = setOf(),
+    @ManyToMany(targetEntity = TagEntity::class, mappedBy = "files")
+    open var tags: Set<TagEntity> = setOf(),
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "folder_id")
     open var folder: MediaFolder = MediaFolder(),
