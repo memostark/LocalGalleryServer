@@ -73,5 +73,7 @@ flyway {
 
 	// So flyway can find the kotlin based migrations
 	locations = arrayOf("classpath:db/migration")
+	// The "BASE_PATH" is where the root folder containing all folders with images is located
+	// IMPORT: You must set this environment variable before using flyway commands
 	placeholders = mutableMapOf<Any, Any>("base_path" to System.getenv("BASE_PATH"))
 }
