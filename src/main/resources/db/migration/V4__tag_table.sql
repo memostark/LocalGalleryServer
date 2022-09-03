@@ -5,6 +5,8 @@ CREATE TABLE tag_entity (
   CONSTRAINT pk_tagentity PRIMARY KEY (id)
 );
 
+ALTER TABLE tag_entity ADD CONSTRAINT uc_tagentity_name UNIQUE (name);
+
 CREATE TABLE `media_tags` (
   `tag_id` bigint NOT NULL,
   `media_id` bigint NOT NULL,

@@ -9,7 +9,7 @@ import javax.persistence.*
  */
 @Entity
 open class TagEntity(
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     open val name: String = "",
     @Column(name = "creation_date", nullable = false)
     open val creationDate: Instant = Instant.now(),
