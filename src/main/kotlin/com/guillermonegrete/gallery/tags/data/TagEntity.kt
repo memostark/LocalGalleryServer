@@ -1,6 +1,6 @@
 package com.guillermonegrete.gallery.tags.data
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.guillermonegrete.gallery.data.MediaFile
 import java.time.Instant
 import javax.persistence.*
@@ -23,8 +23,8 @@ open class TagEntity(
         joinColumns = [JoinColumn(name = "tag_id", referencedColumnName = "id")],
         inverseJoinColumns = [JoinColumn(name = "media_id", referencedColumnName = "id")]
     )
-    @JsonIgnoreProperties("tags")
-    open val files: MutableList<MediaFile> = mutableListOf(),
+    @JsonIgnore
+    open val files: MutableSet<MediaFile> = mutableSetOf(),
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     open val id: Long = 0,
@@ -32,10 +32,6 @@ open class TagEntity(
 
 
     override fun toString(): String {
-        return "id: $id, name: $name"
-    }
-
-    override fun hashCode(): Int {
-        return id.toInt()
+        return "{id: $id, name: $name}"
     }
 }
