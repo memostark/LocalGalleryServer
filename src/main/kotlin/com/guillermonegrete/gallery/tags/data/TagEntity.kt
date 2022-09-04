@@ -1,5 +1,6 @@
 package com.guillermonegrete.gallery.tags.data
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.guillermonegrete.gallery.data.MediaFile
 import java.time.Instant
 import javax.persistence.*
@@ -13,10 +14,6 @@ open class TagEntity(
     open val name: String = "",
     @Column(name = "creation_date", nullable = false)
     open val creationDate: Instant = Instant.now(),
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    open val id: Long = 0,
-){
     /**
      * A tag can be applied to many files.
      */
@@ -26,5 +23,19 @@ open class TagEntity(
         joinColumns = [JoinColumn(name = "tag_id", referencedColumnName = "id")],
         inverseJoinColumns = [JoinColumn(name = "media_id", referencedColumnName = "id")]
     )
-    open val files: Set<MediaFile> = setOf()
+    @JsonIgnoreProperties("tags")
+    open val files: MutableList<MediaFile> = mutableListOf(),
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    open val id: Long = 0,
+){
+
+
+    override fun toString(): String {
+        return "id: $id, name: $name"
+    }
+
+    override fun hashCode(): Int {
+        return id.toInt()
+    }
 }

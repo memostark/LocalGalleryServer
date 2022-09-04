@@ -1,5 +1,6 @@
 package com.guillermonegrete.gallery.data
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.guillermonegrete.gallery.tags.data.TagEntity
 import java.time.Instant
 import javax.persistence.*
@@ -23,7 +24,8 @@ open class MediaFile(
     @Column(name = "last_modified", nullable = false)
     open val lastModified: Instant = Instant.now(),
     @ManyToMany(targetEntity = TagEntity::class, mappedBy = "files")
-    open var tags: Set<TagEntity> = setOf(),
+    @JsonIgnoreProperties("files")
+    open val tags: MutableList<TagEntity> = mutableListOf(),
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "folder_id")
     open var folder: MediaFolder = MediaFolder(),
@@ -32,5 +34,14 @@ open class MediaFile(
 ){
     override fun toString(): String {
         return "{name: $filename, width: $width, height: $height, folder: ${folder.name}, creation_date: $creationDate, lastModified: $lastModified}"
+    }
+
+    override fun hashCode(): Int {
+        return id.toInt()
+    }
+
+    fun addTag(tag: TagEntity){
+        tags.add(tag)
+        tag.files.add(this)
     }
 }
