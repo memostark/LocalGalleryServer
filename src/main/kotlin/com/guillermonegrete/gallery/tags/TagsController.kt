@@ -2,15 +2,21 @@ package com.guillermonegrete.gallery.tags
 
 import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.repository.MediaFileRepository
+import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.data.TagEntity
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 
 @RestController
-class TagsController(private val tagRepo: TagsRepository, private val filesRepo: MediaFileRepository) {
+class TagsController(
+    private val tagRepo: TagsRepository,
+    private val filesRepo: MediaFileRepository,
+    private val folderRepo: MediaFolderRepository
+) {
 
     @GetMapping("/tags")
     fun getAllTags(): ResponseEntity<List<TagEntity>> {
@@ -54,5 +60,18 @@ class TagsController(private val tagRepo: TagsRepository, private val filesRepo:
 
         val files = filesRepo.findFilesByTagsId(id)
         return ResponseEntity(files, HttpStatus.OK)
+    }
+
+    @GetMapping("folders/{id}/tags")
+    fun getTagsByFolder(@PathVariable id: Long): ResponseEntity<Set<TagEntity>> {
+        // Another implementation of this is adding another field to the "media_tags" table for the folder id.
+        // And querying that table for tags with the folder id. It may improve performance.
+        val folder = folderRepo.findByIdOrNull(id) ?: throw RuntimeException("Folder id $id not found")
+        val tags = mutableSetOf<TagEntity>()
+        folder.files.forEach {
+            tags.addAll(it.tags)
+        }
+
+        return ResponseEntity(tags, HttpStatus.OK)
     }
 }
