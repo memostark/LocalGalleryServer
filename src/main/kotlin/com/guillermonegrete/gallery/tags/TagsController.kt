@@ -74,4 +74,22 @@ class TagsController(
 
         return ResponseEntity(tags, HttpStatus.OK)
     }
+
+    @DeleteMapping("/files/{fileId}/tags/{tagId}")
+    fun deleteTagFromTutorial(
+        @PathVariable fileId: Long,
+        @PathVariable tagId: Long
+    ): ResponseEntity<HttpStatus> {
+        val file = filesRepo.findById(fileId)
+            .orElseThrow { RuntimeException("Not found Tutorial with id = $fileId") }
+        file.removeTag(tagId)
+        filesRepo.save(file)
+        return ResponseEntity(HttpStatus.NO_CONTENT)
+    }
+
+    @DeleteMapping("/tags/{id}")
+    fun deleteTag(@PathVariable("id") id: Long): ResponseEntity<HttpStatus> {
+        tagRepo.deleteById(id)
+        return ResponseEntity(HttpStatus.NO_CONTENT)
+    }
 }

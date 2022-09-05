@@ -40,4 +40,10 @@ open class MediaFile(
         tags.add(tag)
         tag.files.add(this)
     }
+
+    fun removeTag(tagId: Long) {
+        val tag = tags.firstOrNull { it.id == tagId } ?: return
+        tags.remove(tag)
+        tag.files.remove(this)
+    }
 }
