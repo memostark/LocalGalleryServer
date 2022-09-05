@@ -49,7 +49,7 @@ class TagsController(
             }
 
             file.addTag(tag)
-            tagRepo.save(tag)
+            tagRepo.findByName(tag.name) ?: tagRepo.save(tag)
         }.orElseThrow { Exception("File with id $id not found") }
         return ResponseEntity(newTag, HttpStatus.OK)
     }
