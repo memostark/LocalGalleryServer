@@ -26,7 +26,7 @@ open class TagEntity(
     @JsonIgnore
     open val files: MutableSet<MediaFile> = mutableSetOf(),
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     open val id: Long = 0,
 ){
 

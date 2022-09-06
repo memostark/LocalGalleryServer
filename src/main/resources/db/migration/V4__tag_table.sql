@@ -1,5 +1,5 @@
 CREATE TABLE tag_entity (
-  id BIGINT NOT NULL,
+  id BIGINT AUTO_INCREMENT NOT NULL,
   creation_date datetime NOT NULL,
   name VARCHAR(255) NOT NULL,
   CONSTRAINT pk_tagentity PRIMARY KEY (id)
