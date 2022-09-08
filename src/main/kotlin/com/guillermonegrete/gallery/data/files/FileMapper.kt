@@ -9,11 +9,11 @@ import org.springframework.stereotype.Component
 @Component
 class FileMapper {
 
-    fun toDto(entity: MediaFile, url: String): FileDTO {
-        return when(entity){
-            is VideoEntity -> VideoFileDTO(url, entity.width, entity.height, entity.creationDate, entity.lastModified, entity.duration)
-            is ImageEntity -> ImageFileDTO(url, entity.width, entity.height, entity.creationDate, entity.lastModified)
-            else -> ImageFileDTO(url, entity.width, entity.height, entity.creationDate, entity.lastModified)
+    fun toDto(e: MediaFile, url: String): FileDTO {
+        return when(e){
+            is VideoEntity -> VideoFileDTO(url, e.width, e.height, e.creationDate, e.lastModified, e.duration, e.tags)
+            is ImageEntity -> ImageFileDTO(url, e.width, e.height, e.creationDate, e.lastModified, e.tags)
+            else -> ImageFileDTO(url, e.width, e.height, e.creationDate, e.lastModified, e.tags)
         }
     }
 }
