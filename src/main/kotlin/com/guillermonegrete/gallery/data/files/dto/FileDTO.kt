@@ -16,6 +16,7 @@ data class ImageFileDTO(
     val creationDate: Instant,
     val lastModified: Instant,
     val tags: Set<TagEntity>,
+    val id: Long,
 ): FileDTO(FileType.Image)
 
 data class VideoFileDTO(
@@ -26,6 +27,7 @@ data class VideoFileDTO(
     val lastModified: Instant,
     val duration: Int,
     val tags: Set<TagEntity>,
+    val id: Long,
 ): FileDTO(FileType.Video)
 
 enum class FileType{
