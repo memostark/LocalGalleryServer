@@ -3,6 +3,7 @@ package com.guillermonegrete.gallery.tags.data
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.guillermonegrete.gallery.data.MediaFile
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import javax.persistence.*
 
 /**
@@ -13,7 +14,7 @@ open class TagEntity(
     @Column(nullable = false, unique = true)
     open val name: String = "",
     @Column(name = "creation_date", nullable = false)
-    open val creationDate: Instant = Instant.now(),
+    open val creationDate: Instant = Instant.now().truncatedTo(ChronoUnit.SECONDS), // by default the db saves in seconds, truncate to avoid having different milliseconds
     /**
      * A tag can be applied to many files.
      */
@@ -32,6 +33,6 @@ open class TagEntity(
 
 
     override fun toString(): String {
-        return "{id: $id, name: $name}"
+        return "{id: $id, name: $name, date: $creationDate}"
     }
 }

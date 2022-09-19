@@ -4,6 +4,7 @@ import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.data.TagEntity
+import com.guillermonegrete.gallery.tags.data.TagRequest
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
@@ -36,7 +37,7 @@ class TagsController(
     }
 
     @PostMapping("files/{id}/tags")
-    fun addTag(@PathVariable id: Long, @RequestBody tag: TagEntity): ResponseEntity<TagEntity> {
+    fun addTag(@PathVariable id: Long, @RequestBody tag: TagRequest): ResponseEntity<TagEntity> {
         val newTag = filesRepo.findById(id).map { file ->
             val tagId = tag.id
 
@@ -48,7 +49,7 @@ class TagsController(
                 return@map savedTag
             }
 
-            val completeTag = tagRepo.findByName(tag.name) ?: tag
+            val completeTag = tagRepo.findByName(tag.name) ?: TagEntity(tag.name, id = tag.id)
             file.addTag(completeTag)
             tagRepo.save(completeTag)
         }.orElseThrow { Exception("File with id $id not found") }
