@@ -1,6 +1,7 @@
 package com.guillermonegrete.gallery.data.files.dto
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.guillermonegrete.gallery.tags.data.TagEntity
 import java.time.Instant
 
 sealed class FileDTO(
@@ -8,9 +9,26 @@ sealed class FileDTO(
     val type: FileType
 )
 
-data class ImageFileDTO(val url: String, val width: Int, val height: Int, val creationDate: Instant, val lastModified: Instant): FileDTO(FileType.Image)
+data class ImageFileDTO(
+    val url: String,
+    val width: Int,
+    val height: Int,
+    val creationDate: Instant,
+    val lastModified: Instant,
+    val tags: Set<TagEntity>,
+    val id: Long,
+): FileDTO(FileType.Image)
 
-data class VideoFileDTO(val url: String, val width: Int, val height: Int, val creationDate: Instant, val lastModified: Instant, val duration: Int): FileDTO(FileType.Video)
+data class VideoFileDTO(
+    val url: String,
+    val width: Int,
+    val height: Int,
+    val creationDate: Instant,
+    val lastModified: Instant,
+    val duration: Int,
+    val tags: Set<TagEntity>,
+    val id: Long,
+): FileDTO(FileType.Video)
 
 enum class FileType{
     Image,
