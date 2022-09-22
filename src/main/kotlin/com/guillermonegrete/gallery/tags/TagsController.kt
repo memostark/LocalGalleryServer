@@ -26,14 +26,14 @@ class TagsController(
     }
 
     @PostMapping("/tags/add")
-    fun createTag(@RequestParam name: String): String{
-        try {
-            tagRepo.save(TagEntity(name))
+    fun createTag(@RequestParam name: String): ResponseEntity<TagEntity>{
+        return try {
+            val tag = tagRepo.save(TagEntity(name))
+            ResponseEntity(tag, HttpStatus.OK)
         } catch (ex: DataIntegrityViolationException){
             println("Duplicate entry for $name")
+            ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
         }
-
-        return "Saved"
     }
 
     @PostMapping("files/{id}/tags")
