@@ -12,4 +12,6 @@ interface MediaFileRepository : JpaRepository<MediaFile, Long>{
     fun findAllByFolder(folder: MediaFolder, pageable: Pageable): Page<MediaFile>
 
     fun findFilesByTagsId(tagId: Long): List<MediaFile>
+
+    fun findFilesByTagsIdAndFolderId(tagId: Long, folderId: Long, pageable: Pageable): Page<MediaFile>
 }
