@@ -16,4 +16,13 @@ class FileMapper {
             else -> ImageFileDTO(url, e.width, e.height, e.creationDate, e.lastModified, e.tags, e.id)
         }
     }
+
+    fun toDtoWithHost(e: MediaFile, host: String): FileDTO {
+        val url = "http://$host/images/${e.folder.name}/${e.filename}"
+        return when(e){
+            is VideoEntity -> VideoFileDTO(url, e.width, e.height, e.creationDate, e.lastModified, e.duration, e.tags, e.id)
+            is ImageEntity -> ImageFileDTO(url, e.width, e.height, e.creationDate, e.lastModified, e.tags, e.id)
+            else -> ImageFileDTO(url, e.width, e.height, e.creationDate, e.lastModified, e.tags, e.id)
+        }
+    }
 }

@@ -65,11 +65,14 @@ class TagsController(
     }
 
     @GetMapping("tags/{id}/files")
-    fun getFilesByTag(@PathVariable id: Long): ResponseEntity<List<MediaFile>>{
+    fun getFilesByTag(@PathVariable id: Long, pageable: Pageable): ResponseEntity<SimplePage<FileDTO>>{
         if(!tagRepo.existsById(id)) throw Exception("Tag with id $id not found")
 
-        val files = filesRepo.findFilesByTagsId(id)
-        return ResponseEntity(files, HttpStatus.OK)
+        val filesPage = filesRepo.findFilesByTagsId(id, pageable)
+        val finalFiles = filesPage.content.map { fileMapper.toDtoWithHost(it, ipAddress) }
+
+        val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
+        return ResponseEntity(page, HttpStatus.OK)
     }
 
     @GetMapping("folders/{id}/tags")
@@ -92,10 +95,7 @@ class TagsController(
         if(!folderRepo.existsById(folderId)) throw Exception("Folder with id $folderId not found")
 
         val filesPage = filesRepo.findFilesByTagsIdAndFolderId(tagId, folderId, pageable)
-        val finalFiles = filesPage.content.map {
-            val subFolderPath = "http://$ipAddress/images/${it.folder.name}/${it.filename}"
-            fileMapper.toDto(it, subFolderPath)
-        }
+        val finalFiles = filesPage.content.map { fileMapper.toDtoWithHost(it, ipAddress) }
 
         val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
         return ResponseEntity(page, HttpStatus.OK)
