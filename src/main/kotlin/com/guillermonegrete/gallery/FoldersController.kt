@@ -38,7 +38,7 @@ class FoldersController(
             val firstFilename = folder.files.firstOrNull()?.filename ?: ""
             val coverUrl = "http://$ipAddress/images/${folder.name}/$firstFilename"
 
-            Folder(folder.name, coverUrl, folder.files.size)
+            Folder(folder.name, coverUrl, folder.files.size, folder.id)
         }
 
         return PagedFolderResponse(File(basePath).nameWithoutExtension, SimplePage(finalFolders, folders.totalPages, folders.totalElements.toInt()))
