@@ -1,23 +1,31 @@
 package com.guillermonegrete.gallery.tags
 
 import com.guillermonegrete.gallery.data.MediaFile
+import com.guillermonegrete.gallery.data.SimplePage
+import com.guillermonegrete.gallery.data.files.FileMapper
+import com.guillermonegrete.gallery.data.files.dto.FileDTO
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.data.TagEntity
 import com.guillermonegrete.gallery.tags.data.TagRequest
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.net.InetAddress
 
 
 @RestController
 class TagsController(
     private val tagRepo: TagsRepository,
     private val filesRepo: MediaFileRepository,
-    private val folderRepo: MediaFolderRepository
+    private val folderRepo: MediaFolderRepository,
+    private val fileMapper: FileMapper,
 ) {
+
+    private val ipAddress: String by lazy { getLocalIpAddress() }
 
     @GetMapping("/tags")
     fun getAllTags(): ResponseEntity<List<TagEntity>> {
@@ -57,11 +65,14 @@ class TagsController(
     }
 
     @GetMapping("tags/{id}/files")
-    fun getFilesByTag(@PathVariable id: Long): ResponseEntity<List<MediaFile>>{
+    fun getFilesByTag(@PathVariable id: Long, pageable: Pageable): ResponseEntity<SimplePage<FileDTO>>{
         if(!tagRepo.existsById(id)) throw Exception("Tag with id $id not found")
 
-        val files = filesRepo.findFilesByTagsId(id)
-        return ResponseEntity(files, HttpStatus.OK)
+        val filesPage = filesRepo.findFilesByTagsId(id, pageable)
+        val finalFiles = filesPage.content.map { fileMapper.toDtoWithHost(it, ipAddress) }
+
+        val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
+        return ResponseEntity(page, HttpStatus.OK)
     }
 
     @GetMapping("folders/{id}/tags")
@@ -75,6 +86,19 @@ class TagsController(
         }
 
         return ResponseEntity(tags, HttpStatus.OK)
+    }
+
+    @GetMapping("folders/{folderId}/tags/{tagId}")
+    fun getFilesByFolderAndTag(@PathVariable folderId: Long, @PathVariable tagId: Long, pageable: Pageable): ResponseEntity<SimplePage<FileDTO>> {
+        if(!tagRepo.existsById(tagId)) throw Exception("Tag with id $tagId not found")
+
+        if(!folderRepo.existsById(folderId)) throw Exception("Folder with id $folderId not found")
+
+        val filesPage = filesRepo.findFilesByTagsIdAndFolderId(tagId, folderId, pageable)
+        val finalFiles = filesPage.content.map { fileMapper.toDtoWithHost(it, ipAddress) }
+
+        val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
+        return ResponseEntity(page, HttpStatus.OK)
     }
 
     @DeleteMapping("/files/{fileId}/tags/{tagId}")
@@ -93,5 +117,10 @@ class TagsController(
     fun deleteTag(@PathVariable("id") id: Long): ResponseEntity<HttpStatus> {
         tagRepo.deleteById(id)
         return ResponseEntity(HttpStatus.NO_CONTENT)
+    }
+
+    fun getLocalIpAddress(): String{
+        val inetAddress = InetAddress.getLocalHost()
+        return inetAddress.hostAddress
     }
 }
