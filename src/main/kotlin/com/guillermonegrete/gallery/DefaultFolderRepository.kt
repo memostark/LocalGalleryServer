@@ -17,7 +17,7 @@ class DefaultFolderRepository(private val infoService: GetFileInfoService): Fold
     private val supportedVideo = setOf("mp4", "webm")
 
     override fun getFolders(path: String): List<String> {
-        return File(path).list()?.toList() ?: emptyList()
+        return File(path).listFiles { file -> file.isDirectory }?.map { it.name } ?: emptyList()
     }
 
     override fun getImageNames(folder: String): Set<String> {
