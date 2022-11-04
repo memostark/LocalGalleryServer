@@ -7,11 +7,6 @@ data class Folder(
         val id: Long,
 )
 
-data class GetFolderResponse(
-        val name: String,
-        val folders: List<Folder>
-)
-
 data class PagedFolderResponse(
         val name: String,
         val page: SimplePage<Folder>

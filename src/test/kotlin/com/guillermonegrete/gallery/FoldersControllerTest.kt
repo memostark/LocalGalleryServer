@@ -1,15 +1,15 @@
 package com.guillermonegrete.gallery
 
-import com.guillermonegrete.gallery.data.GetFolderResponse
 import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.MediaFolder
+import com.guillermonegrete.gallery.data.PagedFolderResponse
+import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.services.FolderFetchingService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
-import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.collection.IsCollectionWithSize.hasSize
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -24,10 +24,12 @@ import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.net.InetAddress
 
-@WebMvcTest
+
+@WebMvcTest(controllers = [FoldersController::class])
 @TestPropertySource(properties = [
     "base.path=dummy"
 ])
@@ -38,28 +40,34 @@ class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
     private lateinit var commandLineRunner: CommandLineRunner
     @MockkBean lateinit var service: FolderFetchingService
 
-    @MockkBean private lateinit var foldersRepository: FoldersRepository
     @MockkBean private lateinit var mediaFolderRepository: MediaFolderRepository
     @MockkBean private lateinit var mediaFileRepository: MediaFileRepository
 
     @Value("\${base.path}")
     private lateinit var path: String
 
+    private val ipAddress = InetAddress.getLocalHost().hostAddress
+
     @Throws(Exception::class)
     @Test
-    fun `Folders endpoint returns response model`(){
-        every { foldersRepository.getFolders(path) } returns emptyList()
+    fun `Folders endpoint returns paged response model`(){
+        val pageable = PageRequest.of(0, 20)
+        val content = List(21) { MediaFolder("name$it", listOf(MediaFile("image.jpg")), 100L + it) }
+        every { mediaFolderRepository.findAll(pageable) } returns PageImpl(content.subList(0, 20), pageable, content.size.toLong())
 
-        val expected = GetFolderResponse(path, emptyList())
+        val expected = PagedFolderResponse(path, SimplePage(emptyList(), 0, 0))
         mockMvc.perform(get("/folders")).andDo(print()).andExpect(status().isOk)
-                .andExpect(jsonPath("$.name").value(expected.name))
-                .andExpect(jsonPath("$.folders", `is`(expected.folders)))
+            .andExpect(jsonPath("$.name").value(expected.name))
+            .andExpect(jsonPath("$.page.items", hasSize<Array<Any>>(20)))
+            .andExpect(jsonPath("$.page.items[0].name").value("name0"))
+            .andExpect(jsonPath("$.page.items[0].coverUrl").value("http://$ipAddress/images/name0/image.jpg"))
+            .andExpect(jsonPath("$.page.totalPages").value(2))
+            .andExpect(jsonPath("$.page.totalItems").value(21))
     }
 
     @Test
     fun `Sub folder returns list of image files`(){
         val subFolder = "subFolder"
-        val ipAddress = InetAddress.getLocalHost().hostAddress
 
         every { mediaFolderRepository.findByName(subFolder) } returns MediaFolder(subFolder, listOf(MediaFile("image1", 100, 100)))
 
@@ -73,7 +81,6 @@ class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
     @Test
     fun `Sub folder returns page of image files`(){
         val subFolder = "subFolder"
-        val ipAddress = InetAddress.getLocalHost().hostAddress
         val content = List(21) { MediaFile("image$it", 100 + it, 100 + it) }
 
         val mediaFolder = MediaFolder(subFolder)
