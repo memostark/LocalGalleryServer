@@ -1,16 +1,17 @@
 package com.guillermonegrete.gallery
 
-import com.guillermonegrete.gallery.data.MediaFile
-import com.guillermonegrete.gallery.data.MediaFolder
-import com.guillermonegrete.gallery.data.PagedFolderResponse
-import com.guillermonegrete.gallery.data.SimplePage
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.guillermonegrete.gallery.data.*
 import com.guillermonegrete.gallery.data.files.FileMapper
+import com.guillermonegrete.gallery.data.files.dto.ImageFileDTO
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.services.FolderFetchingService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.hamcrest.collection.IsCollectionWithSize.hasSize
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -33,7 +34,11 @@ import java.net.InetAddress
 @TestPropertySource(properties = [
     "base.path=dummy"
 ])
-class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
+class FoldersControllerTest(
+    @Autowired val mockMvc: MockMvc,
+    @Autowired val mapper: FileMapper,
+    @Autowired val objectMapper: ObjectMapper
+) {
 
     // For the bean in the application class, don't want to run it in these tests
     @MockkBean(relaxed = true)
@@ -53,16 +58,20 @@ class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
     fun `Folders endpoint returns paged response model`(){
         val pageable = PageRequest.of(0, 20)
         val content = List(21) { MediaFolder("name$it", listOf(MediaFile("image.jpg")), 100L + it) }
-        every { mediaFolderRepository.findAll(pageable) } returns PageImpl(content.subList(0, 20), pageable, content.size.toLong())
+        val subList = content.subList(0, 20)
+        every { mediaFolderRepository.findAll(pageable) } returns PageImpl(subList, pageable, content.size.toLong())
 
-        val expected = PagedFolderResponse(path, SimplePage(emptyList(), 0, 0))
-        mockMvc.perform(get("/folders")).andDo(print()).andExpect(status().isOk)
-            .andExpect(jsonPath("$.name").value(expected.name))
-            .andExpect(jsonPath("$.page.items", hasSize<Array<Any>>(20)))
-            .andExpect(jsonPath("$.page.items[0].name").value("name0"))
-            .andExpect(jsonPath("$.page.items[0].coverUrl").value("http://$ipAddress/images/name0/image.jpg"))
-            .andExpect(jsonPath("$.page.totalPages").value(2))
-            .andExpect(jsonPath("$.page.totalItems").value(21))
+        val expected = PagedFolderResponse(
+            path,
+            SimplePage(subList.map { Folder(it.name, "http://$ipAddress/images/${it.name}/image.jpg", 1, it.id) },
+            2, content.size)
+        )
+        val result = mockMvc.perform(get("/folders")).andDo(print())
+            .andExpect(status().isOk)
+            .andReturn()
+
+        val resultResponse = objectMapper.readValue(result.response.contentAsString, PagedFolderResponse::class.java)
+        assertEquals(expected, resultResponse)
     }
 
     @Test
@@ -81,23 +90,24 @@ class FoldersControllerTest(@Autowired val mockMvc: MockMvc) {
     @Test
     fun `Sub folder returns page of image files`(){
         val subFolder = "subFolder"
-        val content = List(21) { MediaFile("image$it", 100 + it, 100 + it) }
-
         val mediaFolder = MediaFolder(subFolder)
-        val pageable = PageRequest.of(0, 20)
 
         every { mediaFolderRepository.findByName(subFolder) } returns mediaFolder
 
-        every { mediaFileRepository.findAllByFolder(mediaFolder, pageable) } returns PageImpl(content.subList(0, 20), pageable, content.size.toLong())
+        val pageable = PageRequest.of(0, 20)
+        val content = List(21) { MediaFile("image$it", 100 + it, 100 + it, folder = mediaFolder) }
+        val subList = content.subList(0, 20)
 
+        every { mediaFileRepository.findAllByFolder(mediaFolder, pageable) } returns PageImpl(subList, pageable, content.size.toLong())
+
+        val expected = SimplePage(subList.map { mapper.toDtoWithHost(it, ipAddress) }, 2, content.size)
         // First check the items then total pages and total items
-        mockMvc.perform(get("/folders/$subFolder").param("size", "20").param("page", "0")).andDo(print()).andExpect(status().isOk)
-            .andExpect(jsonPath("$.items", hasSize<Array<Any>>(20)))
-            .andExpect(jsonPath("$.items[0].url").value("http://$ipAddress/images/$subFolder/image0"))
-            .andExpect(jsonPath("$.items[0].width").value(100))
-            .andExpect(jsonPath("$.items[0].height").value(100))
-            .andExpect(jsonPath("$.totalPages").value(2))
-            .andExpect(jsonPath("$.totalItems").value(21))
+        val result = mockMvc.perform(get("/folders/$subFolder").param("size", "20").param("page", "0")).andDo(print())
+            .andExpect(status().isOk)
+            .andReturn()
+
+        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<SimplePage<ImageFileDTO>>() {})
+        assertEquals(expected, resultResponse)
     }
 
     @TestConfiguration
