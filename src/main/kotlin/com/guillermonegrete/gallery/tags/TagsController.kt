@@ -74,6 +74,17 @@ class TagsController(
         return ResponseEntity(page, HttpStatus.OK)
     }
 
+    @PostMapping("tags/{id}/files")
+    fun addTagToFiles(@PathVariable id: Long, @RequestBody fileIds: List<Long>) {
+        val tag = tagRepo.findByIdOrNull(id) ?: throw RuntimeException("Folder id $id not found")
+
+        val files = filesRepo.findByIdIn(fileIds)
+        println(files)
+
+        files.forEach { it.addTag(tag) }
+        filesRepo.saveAll(files)
+    }
+
     @GetMapping("folders/{id}/tags")
     fun getTagsByFolder(@PathVariable id: Long): ResponseEntity<Set<TagEntity>> {
         // Another implementation of this is adding another field to the "media_tags" table for the folder id.
