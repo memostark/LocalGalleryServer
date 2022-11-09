@@ -1,5 +1,6 @@
 package com.guillermonegrete.gallery.tags
 
+import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
@@ -75,14 +76,25 @@ class TagsController(
     }
 
     @PostMapping("tags/{id}/files")
-    fun addTagToFiles(@PathVariable id: Long, @RequestBody fileIds: List<Long>) {
-        val tag = tagRepo.findByIdOrNull(id) ?: throw RuntimeException("Folder id $id not found")
+    fun addTagToFiles(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<MediaFile>> {
+        val tag = tagRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
 
         val files = filesRepo.findByIdIn(fileIds)
-        println(files)
 
         files.forEach { it.addTag(tag) }
         filesRepo.saveAll(files)
+        return ResponseEntity(files, HttpStatus.OK)
+    }
+
+    @PostMapping("files/{id}/multitag")
+    fun addTagsToFile(@PathVariable id: Long, @RequestBody tagIds: List<Long>): ResponseEntity<List<TagEntity>> {
+        val file = filesRepo.findByIdOrNull(id) ?: throw RuntimeException("File id $id not found")
+
+        val tags = tagRepo.findByIdIn(tagIds)
+
+        tags.forEach { file.addTag(it) }
+        filesRepo.save(file)
+        return ResponseEntity(tags, HttpStatus.OK)
     }
 
     @GetMapping("folders/{id}/tags")
