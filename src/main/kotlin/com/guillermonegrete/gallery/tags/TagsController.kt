@@ -76,14 +76,15 @@ class TagsController(
     }
 
     @PostMapping("tags/{id}/files")
-    fun addTagToFiles(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<MediaFile>> {
+    fun addTagToFiles(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<FileDTO>> {
         val tag = tagRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
 
         val files = filesRepo.findByIdIn(fileIds)
 
         files.forEach { it.addTag(tag) }
         filesRepo.saveAll(files)
-        return ResponseEntity(files, HttpStatus.OK)
+        val fileDTOs = files.map { fileMapper.toDtoWithHost(it, ipAddress) }
+        return ResponseEntity(fileDTOs, HttpStatus.OK)
     }
 
     @PostMapping("files/{id}/multitag")
