@@ -81,9 +81,9 @@ class TagsController(
 
         val files = filesRepo.findByIdIn(fileIds)
 
-        files.forEach { it.addTag(tag) }
+        val updatedFiles = files.filter { it.addTag(tag) }
         filesRepo.saveAll(files)
-        val fileDTOs = files.map { fileMapper.toDtoWithHost(it, ipAddress) }
+        val fileDTOs = updatedFiles.map { fileMapper.toDtoWithHost(it, ipAddress) }
         return ResponseEntity(fileDTOs, HttpStatus.OK)
     }
 
