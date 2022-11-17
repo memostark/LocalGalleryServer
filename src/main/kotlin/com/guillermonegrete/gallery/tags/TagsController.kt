@@ -1,6 +1,5 @@
 package com.guillermonegrete.gallery.tags
 
-import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO

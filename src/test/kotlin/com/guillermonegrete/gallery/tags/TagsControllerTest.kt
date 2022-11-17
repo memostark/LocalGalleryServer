@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.net.InetAddress
+import java.time.Instant
 import java.util.*
 
 @WebMvcTest
@@ -98,6 +99,61 @@ class TagsControllerTest(
 
         val resultResponse = objectMapper.readValue(result.response.contentAsString, TagEntity::class.java)
         assertTagEqual(savedTag, resultResponse)
+    }
+
+    @Test
+    fun `Given valid file id, when add tags endpoint, then return updated tags`(){
+        val fileId = 1L
+        val date = Instant.now()
+        val savedFile = MediaFile("file_1", creationDate = date, lastModified = date)
+        every { mediaFileRepository.findById(fileId) } returns Optional.of(savedFile)
+
+        val files = listOf(
+            TagEntity("tag_1", date),
+            TagEntity("tag_2", date),
+            TagEntity("tag_3", date),
+        )
+        every { tagsRepository.findByIdIn(listOf(2,3,4)) } returns files
+
+        every { mediaFileRepository.save(any()) } returns savedFile
+
+        // Using string comparison instead of
+        val expectedResponse = """[{"name":"tag_1","creationDate":"$date","id":0},{"name":"tag_2","creationDate":"$date","id":0},{"name":"tag_3","creationDate":"$date","id":0}]"""
+
+        mockMvc.perform(post("/files/{id}/multitag", fileId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""[2,3,4]"""))
+            .andExpect(status().isOk)
+            .andExpect(content().string(expectedResponse))
+    }
+
+    @Test
+    fun `Given valid tag id, when add tag to files endpoint, then return updated files`(){
+        val tagId = 1L
+        val date = Instant.now()
+        val savedTag = TagEntity("my_tag", date)
+        every { tagsRepository.findById(tagId) } returns Optional.of(savedTag)
+
+        val files = listOf(
+            MediaFile("file_1", creationDate = date, lastModified = date),
+            MediaFile("file_2", creationDate = date, lastModified = date),
+            MediaFile("file_3", creationDate = date, lastModified = date),
+        )
+        every { mediaFileRepository.findByIdIn(listOf(2,3,4)) } returns files
+
+        every { mediaFileRepository.saveAll<MediaFile>(any()) } returns listOf()
+
+        // Using string comparison instead of
+        val expectedResponse =
+            """[{"url":"http://$ipAddress/images//file_1","width":0,"height":0,"creationDate":"$date","lastModified":"$date","tags":[{"name":"my_tag","creationDate":"$date","id":0}],"id":0,"file_type":"Image"},""" +
+            """{"url":"http://$ipAddress/images//file_2","width":0,"height":0,"creationDate":"$date","lastModified":"$date","tags":[{"name":"my_tag","creationDate":"$date","id":0}],"id":0,"file_type":"Image"},""" +
+            """{"url":"http://$ipAddress/images//file_3","width":0,"height":0,"creationDate":"$date","lastModified":"$date","tags":[{"name":"my_tag","creationDate":"$date","id":0}],"id":0,"file_type":"Image"}]"""
+
+        mockMvc.perform(post("/tags/{id}/files", tagId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""[2,3,4]"""))
+            .andExpect(status().isOk)
+            .andExpect(content().string(expectedResponse))
     }
 
     @Test
