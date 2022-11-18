@@ -36,9 +36,12 @@ open class MediaFile(
         return "{name: $filename, width: $width, height: $height, folder: ${folder.name}, creation_date: $creationDate, lastModified: $lastModified}"
     }
 
-    fun addTag(tag: TagEntity){
-        tags.add(tag)
+    /**
+     * Returns true if the tag wasn't already applied, false otherwise.
+     */
+    fun addTag(tag: TagEntity): Boolean {
         tag.files.add(this)
+        return tags.add(tag)
     }
 
     fun removeTag(tagId: Long) {
