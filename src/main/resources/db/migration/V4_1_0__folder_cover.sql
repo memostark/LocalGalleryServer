@@ -1,0 +1,1 @@
+ALTER TABLE media_folder ADD cover_file_id BIGINT;

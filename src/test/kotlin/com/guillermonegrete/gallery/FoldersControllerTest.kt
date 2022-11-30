@@ -57,7 +57,7 @@ class FoldersControllerTest(
     @Test
     fun `Folders endpoint returns paged response model`(){
         val pageable = PageRequest.of(0, 20)
-        val content = List(21) { MediaFolder("name$it", listOf(MediaFile("image.jpg")), 100L + it) }
+        val content = List(21) { MediaFolder("name$it", listOf(MediaFile("image.jpg")), id = 100L + it) }
         val subList = content.subList(0, 20)
         every { mediaFolderRepository.findAll(pageable) } returns PageImpl(subList, pageable, content.size.toLong())
 

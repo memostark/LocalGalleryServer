@@ -177,7 +177,7 @@ class TagsControllerTest(
         val folderId = 0L
         val tag = TagEntity("my_tag")
         val files = listOf(MediaFile("image.jpg", tags = mutableSetOf(tag)))
-        every { mediaFolderRepository.findByIdOrNull(folderId) } returns MediaFolder("my_folder", files, folderId)
+        every { mediaFolderRepository.findByIdOrNull(folderId) } returns MediaFolder("my_folder", files, id = folderId)
 
         val result = mockMvc.perform(get("/folders/{id}/tags", 0))
             .andExpect(status().isOk)
