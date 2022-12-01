@@ -9,7 +9,6 @@ data class MediaFolder(
     @OneToMany(targetEntity=MediaFile::class, mappedBy = "folder", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var files: List<MediaFile> = emptyList(),
     @OneToOne
-    @MapsId
     @JoinColumn(name = "cover_file_id")
     var coverFile: MediaFile? = null,
     @Id @GeneratedValue(strategy = GenerationType.AUTO)

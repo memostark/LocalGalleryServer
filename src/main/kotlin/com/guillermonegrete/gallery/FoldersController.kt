@@ -12,10 +12,10 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
 import java.io.File
 import java.net.InetAddress
 
@@ -35,7 +35,7 @@ class FoldersController(
         val folders = if(query == null) getFolderPage(pageable) else getFolderPage(query, pageable)
 
         val finalFolders = folders.content.map { folder ->
-            val firstFilename = folder.files.firstOrNull()?.filename ?: ""
+            val firstFilename = folder.coverFile?.filename ?: folder.files.firstOrNull()?.filename ?: ""
             val coverUrl = "http://$ipAddress/images/${folder.name}/$firstFilename"
 
             Folder(folder.name, coverUrl, folder.files.size, folder.id)
@@ -81,6 +81,17 @@ class FoldersController(
         return SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
     }
 
+    @PatchMapping("/folder/{id}/cover/{fileId}")
+    fun updateFolderCover(@PathVariable("id") id: Long, @PathVariable("fileId") fileId: Long): ResponseEntity<Folder> {
+        val folder = mediaFolderRepo.findByIdOrNull(id) ?: throw RuntimeException("Folder id $id not found")
+        val file = mediaFilesRepo.findByIdOrNull(fileId) ?: throw RuntimeException("File id $fileId not found")
+
+        folder.coverFile = file
+
+        val savedFolder = mediaFolderRepo.save(folder).toDto(file.filename)
+        return ResponseEntity(savedFolder, HttpStatus.OK)
+    }
+
     /**
      * Gets the first filename that is a image of the given list.
      */
@@ -122,6 +133,11 @@ class FoldersController(
     fun getLocalIpAddress(): String{
         val inetAddress = InetAddress.getLocalHost()
         return inetAddress.hostAddress
+    }
+
+    fun MediaFolder.toDto(fileName: String): Folder {
+        val coverUrl = "http://$ipAddress/images/$name/$fileName"
+        return Folder(name, coverUrl, files.size, id)
     }
 
     companion object{
