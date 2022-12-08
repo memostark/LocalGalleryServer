@@ -71,6 +71,9 @@ flyway {
 	user = "gallery_user"
 	password = ""
 
+	// set this value when partial migrations are desired
+//	target = "4"
+
 	// So flyway can find the kotlin based migrations
 	locations = arrayOf("classpath:db/migration")
 	// The "BASE_PATH" is where the root folder containing all folders with images is located
