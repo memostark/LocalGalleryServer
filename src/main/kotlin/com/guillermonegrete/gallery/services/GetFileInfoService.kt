@@ -43,6 +43,7 @@ class GetFileInfoService {
                 reader.input = stream
                 val width: Int = reader.getWidth(reader.minIndex)
                 val height: Int = reader.getHeight(reader.minIndex)
+                stream.close()
                 return Size(width, height)
             } catch (e: IOException) {
                 println("Error reading: ${imgFile.absoluteFile}, $e")
