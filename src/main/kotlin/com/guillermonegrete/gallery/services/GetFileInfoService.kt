@@ -83,7 +83,7 @@ class GetFileInfoService {
                 // Simple File Format (Lossy)
                 // The data is in the VP8 specification and the decoding guide explains how to get the dimensions: https://datatracker.ietf.org/doc/html/rfc6386#section-19.1
                 // The formats consists of the frame_tag (3 bytes), start code (3 bytes), horizontal_size_code (2 bytes) and vertical_size_code (2 bytes)
-                // The size is 12 bits, use a mask to remove the last two digits
+                // The size is 14 bits, use a mask to remove the last two digits
                 width = get16bit(data, 26) and 0x3FFF
                 height = get16bit(data, 28) and 0x3FFF
             }
@@ -92,6 +92,16 @@ class GetFileInfoService {
                 // The width starts 4 bytes after the ChunkHeader with a size of 3 bytes, the height comes after.
                 width = 1 + (get24bit(data, 24))
                 height = 1 + (get24bit(data, 27))
+            }
+            "VP8L" -> {
+                // Simple File Format (Lossless), specification here: https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification#3_riff_header
+                // The format consists of a signature (1 byte), 14 bit width (2 bytes) and 14 bit height (2 bytes)
+                // The width and height are in consecutive bits
+                val firstBytes = get16bit(data, 21)
+                width = 1 + (firstBytes and 0x3FFF)
+                val lastTwoDigits =  (firstBytes and 0xC000) shr 14 // the last 2 bits correspond to the first 2 bits of the height
+                // Extract the remaining 12 bits and shift them to add space for the two digits
+                height = 1 + ((get16bit(data, 23) and 0xFFF shl 2) or lastTwoDigits)
             }
             else -> return null
         }
@@ -117,6 +127,7 @@ class GetFileInfoService {
     }
 
     private fun get16bit(data: ByteArray, index: Int): Int {
+        // The mask (0xFF) converts the byte from signed (this is how java originally reads the byte) to unsigned
         return data[index].toInt() and 0xFF or (data[index + 1].toInt() and 0xFF shl 8)
     }
 
