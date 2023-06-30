@@ -13,7 +13,7 @@ MarkupSafe==1.1.1
 mod-wsgi==4.9.3
 openapi-spec-validator==0.2.8
 PyYAML==5.4
-requests==2.22.0
+requests==2.31.0
 six==1.12.0
 swagger-ui-bundle==0.0.5
 urllib3==1.26.5
