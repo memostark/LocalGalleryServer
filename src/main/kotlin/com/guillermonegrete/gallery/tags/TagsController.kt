@@ -5,8 +5,10 @@ import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
+import com.guillermonegrete.gallery.tags.data.TagDto
 import com.guillermonegrete.gallery.tags.data.TagEntity
 import com.guillermonegrete.gallery.tags.data.TagRequest
+import com.guillermonegrete.gallery.tags.data.toDto
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
@@ -27,9 +29,10 @@ class TagsController(
     private val ipAddress: String by lazy { getLocalIpAddress() }
 
     @GetMapping("/tags")
-    fun getAllTags(): ResponseEntity<List<TagEntity>> {
+    fun getAllTags(): ResponseEntity<List<TagDto>> {
         val tags = tagRepo.findAll()
-        return if (tags.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tags, HttpStatus.OK)
+        val tagsDto = tags.map { it.toDto() }
+        return if (tagsDto.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tagsDto, HttpStatus.OK)
     }
 
     @PostMapping("/tags/add")
