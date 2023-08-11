@@ -101,7 +101,7 @@ class TagsController(
     }
 
     @GetMapping("folders/{id}/tags")
-    fun getTagsByFolder(@PathVariable id: Long): ResponseEntity<Set<TagEntity>> {
+    fun getTagsByFolder(@PathVariable id: Long): ResponseEntity<Set<TagDto>> {
         // Another implementation of this is adding another field to the "media_tags" table for the folder id.
         // And querying that table for tags with the folder id. It may improve performance.
         val folder = folderRepo.findByIdOrNull(id) ?: throw RuntimeException("Folder id $id not found")
@@ -110,7 +110,12 @@ class TagsController(
             tags.addAll(it.tags)
         }
 
-        return ResponseEntity(tags, HttpStatus.OK)
+        val tagsDto = tags.map {
+            val count = filesRepo.countFilesByTagsIdAndFolderId(it.id, id)
+            it.toDto(count)
+        }.toSet()
+
+        return ResponseEntity(tagsDto, HttpStatus.OK)
     }
 
     @GetMapping("folders/{folderId}/tags/{tagId}")

@@ -38,3 +38,5 @@ open class TagEntity(
 }
 
 fun TagEntity.toDto() = TagDto(name, files.size, creationDate, id)
+
+fun TagEntity.toDto(count: Int) = TagDto(name, count, creationDate, id)
