@@ -5,7 +5,7 @@ import java.time.temporal.ChronoUnit
 
 data class TagDto(
     val name: String,
-    val count: Int,
+    val count: Long,
     /**
      * By default, the db saves in seconds, truncate to avoid having different milliseconds
      */
