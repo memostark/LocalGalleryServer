@@ -10,6 +10,7 @@ import com.guillermonegrete.gallery.data.files.ImageEntity
 import com.guillermonegrete.gallery.data.files.dto.ImageFileDTO
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
+import com.guillermonegrete.gallery.tags.data.TagDto
 import com.guillermonegrete.gallery.tags.data.TagEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
@@ -22,7 +23,6 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
@@ -175,18 +175,18 @@ class TagsControllerTest(
     @Test
     fun `Given valid folder id, when get tags of folder endpoint called, then tags returned`(){
         val folderId = 0L
-        val tag = TagEntity("my_tag")
-        val files = listOf(MediaFile("image.jpg", tags = mutableSetOf(tag)))
-        every { mediaFolderRepository.findByIdOrNull(folderId) } returns MediaFolder("my_folder", files, id = folderId)
+        val tag = TagDto("new", 12)
+        val tags = setOf(tag)
+        every { tagsRepository.getTagsWithFilesByFolder(folderId) } returns tags
 
         val result = mockMvc.perform(get("/folders/{id}/tags", 0))
             .andExpect(status().isOk)
             .andReturn()
 
-        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<List<TagEntity>>() {})
+        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<List<TagDto>>() {})
         assertThat(resultResponse).hasSize(1)
         val tagResult = resultResponse.first()
-        assertTagEqual(tag, tagResult)
+        assertThat(tagResult).isEqualTo(tag)
     }
 
     @Test

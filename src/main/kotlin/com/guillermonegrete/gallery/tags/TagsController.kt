@@ -5,8 +5,10 @@ import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
+import com.guillermonegrete.gallery.tags.data.TagDto
 import com.guillermonegrete.gallery.tags.data.TagEntity
 import com.guillermonegrete.gallery.tags.data.TagRequest
+import com.guillermonegrete.gallery.tags.data.toDto
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
@@ -27,9 +29,10 @@ class TagsController(
     private val ipAddress: String by lazy { getLocalIpAddress() }
 
     @GetMapping("/tags")
-    fun getAllTags(): ResponseEntity<List<TagEntity>> {
+    fun getAllTags(): ResponseEntity<List<TagDto>> {
         val tags = tagRepo.findAll()
-        return if (tags.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tags, HttpStatus.OK)
+        val tagsDto = tags.map { it.toDto() }
+        return if (tagsDto.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tagsDto, HttpStatus.OK)
     }
 
     @PostMapping("/tags/add")
@@ -98,16 +101,9 @@ class TagsController(
     }
 
     @GetMapping("folders/{id}/tags")
-    fun getTagsByFolder(@PathVariable id: Long): ResponseEntity<Set<TagEntity>> {
-        // Another implementation of this is adding another field to the "media_tags" table for the folder id.
-        // And querying that table for tags with the folder id. It may improve performance.
-        val folder = folderRepo.findByIdOrNull(id) ?: throw RuntimeException("Folder id $id not found")
-        val tags = mutableSetOf<TagEntity>()
-        folder.files.forEach {
-            tags.addAll(it.tags)
-        }
-
-        return ResponseEntity(tags, HttpStatus.OK)
+    fun getTagsByFolder(@PathVariable id: Long): ResponseEntity<Set<TagDto>> {
+        val tagsDto = tagRepo.getTagsWithFilesByFolder(id)
+        return ResponseEntity(tagsDto, HttpStatus.OK)
     }
 
     @GetMapping("folders/{folderId}/tags/{tagId}")

@@ -36,3 +36,5 @@ open class TagEntity(
         return "{id: $id, name: $name, date: $creationDate}"
     }
 }
+
+fun TagEntity.toDto() = TagDto(name, files.size.toLong(), creationDate, id)
