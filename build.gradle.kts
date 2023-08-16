@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.guillermonegrete"
-version = "1.7.2"
+version = "1.8.0"
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
