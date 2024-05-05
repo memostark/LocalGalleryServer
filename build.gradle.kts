@@ -36,6 +36,8 @@ dependencies {
 	// Database migration helper
 	implementation("org.flywaydb:flyway-core")
 
+	implementation("org.springdoc:springdoc-openapi-ui:1.8.0")
+
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
 		exclude(module = "junit")
 		exclude(module = "mockito-core")
