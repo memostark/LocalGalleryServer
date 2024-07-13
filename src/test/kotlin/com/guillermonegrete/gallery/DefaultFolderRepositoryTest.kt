@@ -36,7 +36,7 @@ class DefaultFolderRepositoryTest{
         every { Instant.now() } returns lastModified
 
         every { infoService.getCreationDate(Paths.get(path)) } returns creationDate
-        every { infoService.getImageSize("jpg", File(path)) } returns GetFileInfoService.Size(100, 300)
+        every { infoService.getImageSize(File(path)) } returns GetFileInfoService.Size(100, 300)
 
         val media = repo.getMediaInfo(path)
 
