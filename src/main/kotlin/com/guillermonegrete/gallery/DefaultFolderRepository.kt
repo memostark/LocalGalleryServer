@@ -46,16 +46,16 @@ class DefaultFolderRepository(private val infoService: GetFileInfoService): Fold
     private fun getMediaFile(file: File): MediaFile? {
         val suffix = getSuffix(file) ?: return null
 
-        // First try to get the image info
-        val imageInfo = getImageInfo(suffix, file)
-        if(imageInfo != null) return imageInfo
-
-        // Otherwise, try to get the video info
-        return if(suffix in supportedVideo) {
+        // First handle the supported video
+        if(suffix in supportedVideo) {
             val videoInfo = infoService.getVideoDimensions(file.absolutePath) ?: return null
             val creationDate = infoService.getCreationDate(Paths.get(file.absolutePath)) ?: Instant.now()
-            VideoEntity(file.name, videoInfo.width, videoInfo.height, creationDate, duration = videoInfo.duration)
-        } else null
+            return VideoEntity(file.name, videoInfo.width, videoInfo.height, creationDate, duration = videoInfo.duration)
+        }
+
+        // Otherwise assume it's an image
+        val imageInfo = getImageInfo(file)
+        return imageInfo
     }
 
     /**
@@ -64,9 +64,9 @@ class DefaultFolderRepository(private val infoService: GetFileInfoService): Fold
      * @return dimensions of image
      */
     @Throws(IOException::class)
-    private fun getImageInfo(suffix: String, imgFile: File): ImageEntity? {
+    private fun getImageInfo(imgFile: File): ImageEntity? {
         val creationDate = infoService.getCreationDate(Paths.get(imgFile.absolutePath)) ?: Instant.now()
-        val size = infoService.getImageSize(suffix, imgFile)
+        val size = infoService.getImageSize(imgFile)
 
         return if(size != null) ImageEntity(imgFile.name, size.width, size.height, creationDate) else null
     }
