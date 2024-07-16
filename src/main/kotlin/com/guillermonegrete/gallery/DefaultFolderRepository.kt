@@ -8,11 +8,15 @@ import org.springframework.stereotype.Component
 import java.io.File
 import java.io.IOException
 import java.nio.file.Paths
+import java.time.Clock
 import java.time.Instant
 
 
 @Component
-class DefaultFolderRepository(private val infoService: GetFileInfoService): FoldersRepository {
+class DefaultFolderRepository(
+    private val infoService: GetFileInfoService,
+    private val clock: Clock = Clock.systemDefaultZone(),
+): FoldersRepository {
 
     private val supportedVideo = setOf("mp4", "webm")
 
@@ -27,7 +31,7 @@ class DefaultFolderRepository(private val infoService: GetFileInfoService): Fold
 
     override fun getMediaInfo(path: String): MediaFile? {
         val file = File(path)
-       return getMediaFile(file)
+        return getMediaFile(file)
     }
 
     override fun getMedia(folder: String): List<MediaFile> {
@@ -50,7 +54,7 @@ class DefaultFolderRepository(private val infoService: GetFileInfoService): Fold
         if(suffix in supportedVideo) {
             val videoInfo = infoService.getVideoDimensions(file.absolutePath) ?: return null
             val creationDate = infoService.getCreationDate(Paths.get(file.absolutePath)) ?: Instant.now()
-            return VideoEntity(file.name, videoInfo.width, videoInfo.height, creationDate, duration = videoInfo.duration)
+            return VideoEntity(file.name, videoInfo.width, videoInfo.height, creationDate, duration = videoInfo.duration, lastModified = clock.instant())
         }
 
         // Otherwise assume it's an image
@@ -68,6 +72,6 @@ class DefaultFolderRepository(private val infoService: GetFileInfoService): Fold
         val creationDate = infoService.getCreationDate(Paths.get(imgFile.absolutePath)) ?: Instant.now()
         val size = infoService.getImageSize(imgFile)
 
-        return if(size != null) ImageEntity(imgFile.name, size.width, size.height, creationDate) else null
+        return if(size != null) ImageEntity(imgFile.name, size.width, size.height, creationDate, lastModified = clock.instant()) else null
     }
 }
