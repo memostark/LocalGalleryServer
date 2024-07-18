@@ -17,7 +17,9 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.io.File
+import java.net.DatagramSocket
 import java.net.InetAddress
+
 
 @RestController
 class FoldersController(
@@ -131,8 +133,10 @@ class FoldersController(
     }
 
     fun getLocalIpAddress(): String{
-        val inetAddress = InetAddress.getLocalHost()
-        return inetAddress.hostAddress
+        DatagramSocket().use { datagramSocket ->
+            datagramSocket.connect(InetAddress.getByName("8.8.8.8"), 12345)
+            return datagramSocket.localAddress.hostAddress
+        }
     }
 
     fun MediaFolder.toDto(fileName: String): Folder {
