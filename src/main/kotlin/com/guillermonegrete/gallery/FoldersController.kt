@@ -95,15 +95,6 @@ class FoldersController(
     }
 
     /**
-     * Gets the first filename that is a image of the given list.
-     */
-    fun getFirstImageFile(files: List<String>): String{
-        return files.firstOrNull {
-            image_suffixes.contains( it.split(".").last() )
-        } ?: ""
-    }
-
-    /**
      * Returns the page of folders by the given pageable.
      */
     private fun getFolderPage(pageable: Pageable): Page<MediaFolder> {
@@ -133,6 +124,8 @@ class FoldersController(
     }
 
     fun getLocalIpAddress(): String{
+        val presetIp = System.getenv("OUTBOUND_IP_ADDRESS")
+        if (presetIp != null) return presetIp
         DatagramSocket().use { datagramSocket ->
             datagramSocket.connect(InetAddress.getByName("8.8.8.8"), 12345)
             return datagramSocket.localAddress.hostAddress
@@ -142,9 +135,5 @@ class FoldersController(
     fun MediaFolder.toDto(fileName: String): Folder {
         val coverUrl = "http://$ipAddress/images/$name/$fileName"
         return Folder(name, coverUrl, files.size, id)
-    }
-
-    companion object{
-        val image_suffixes = setOf("jpg", "jpeg", "png")
     }
 }
