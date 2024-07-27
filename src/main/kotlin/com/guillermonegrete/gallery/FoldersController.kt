@@ -76,8 +76,7 @@ class FoldersController(
         val filesPage = mediaFilesRepo.findAll(pageable)
 
         val finalFiles = filesPage.content.map {
-            val subFolderPath = "http://$ipAddress/images/${it.folder.name}/${it.filename}"
-            fileMapper.toDto(it, subFolderPath)
+            fileMapper.toSingleDto(it, ipAddress)
         }
 
         return SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
