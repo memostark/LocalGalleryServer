@@ -71,7 +71,7 @@ class TagsController(
         if(!tagRepo.existsById(id)) throw Exception("Tag with id $id not found")
 
         val filesPage = filesRepo.findFilesByTagsId(id, pageable)
-        val finalFiles = filesPage.content.map { fileMapper.toDtoWithHost(it, ipAddress) }
+        val finalFiles = filesPage.content.map { fileMapper.toSingleDto(it, ipAddress) }
 
         val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
         return ResponseEntity(page, HttpStatus.OK)
