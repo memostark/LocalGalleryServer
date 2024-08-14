@@ -1,5 +1,6 @@
 package com.guillermonegrete.gallery
 
+import com.guillermonegrete.gallery.config.NetworkConfig
 import com.guillermonegrete.gallery.data.Folder
 import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.data.PagedFolderResponse
@@ -8,6 +9,7 @@ import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
@@ -17,8 +19,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.io.File
-import java.net.DatagramSocket
-import java.net.InetAddress
 
 
 @RestController
@@ -30,7 +30,9 @@ class FoldersController(
 
     @Value("\${base.path}")
     private lateinit var basePath: String
-    private val ipAddress: String by lazy { getLocalIpAddress() }
+    @Autowired
+    private lateinit var networkConfig: NetworkConfig
+    private val ipAddress: String by lazy { networkConfig.getLocalIpAddress() }
 
     @GetMapping("/folders")
     fun folders(@RequestParam(required = false) query: String?, pageable: Pageable): PagedFolderResponse{
@@ -119,15 +121,6 @@ class FoldersController(
                 mediaFolderRepo.findByNameContainingAndFileCountDesc(query, newPageable) else mediaFolderRepo.findByNameContainingAndFileCountAsc(query, newPageable)
         } else {
             mediaFolderRepo.findByNameContaining(query, pageable)
-        }
-    }
-
-    fun getLocalIpAddress(): String{
-        val presetIp = System.getenv("OUTBOUND_IP_ADDRESS")
-        if (presetIp != null) return presetIp
-        DatagramSocket().use { datagramSocket ->
-            datagramSocket.connect(InetAddress.getByName("8.8.8.8"), 12345)
-            return datagramSocket.localAddress.hostAddress
         }
     }
 

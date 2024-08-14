@@ -2,6 +2,7 @@ package com.guillermonegrete.gallery.tags
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.guillermonegrete.gallery.config.NetworkConfig
 import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.data.SimplePage
@@ -15,6 +16,7 @@ import com.guillermonegrete.gallery.tags.data.TagEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.CommandLineRunner
@@ -29,7 +31,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
-import java.net.InetAddress
 import java.time.Instant
 import java.util.*
 
@@ -46,8 +47,14 @@ class TagsControllerTest(
     @MockkBean private lateinit var tagsRepository: TagsRepository
     @MockkBean private lateinit var mediaFolderRepository: MediaFolderRepository
     @MockkBean private lateinit var mediaFileRepository: MediaFileRepository
+    @MockkBean private lateinit var networkConfig: NetworkConfig
 
-    private val ipAddress = InetAddress.getLocalHost().hostAddress
+    private val ipAddress = "dummy-address"
+
+    @BeforeEach
+    fun setUp() {
+        every { networkConfig.getLocalIpAddress() } returns ipAddress
+    }
 
     @Test
     fun `Given tags, when get all endpoint called, then return them`(){
