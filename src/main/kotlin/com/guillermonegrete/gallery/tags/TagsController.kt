@@ -1,5 +1,6 @@
 package com.guillermonegrete.gallery.tags
 
+import com.guillermonegrete.gallery.config.NetworkConfig
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
@@ -9,6 +10,7 @@ import com.guillermonegrete.gallery.tags.data.TagDto
 import com.guillermonegrete.gallery.tags.data.TagEntity
 import com.guillermonegrete.gallery.tags.data.TagRequest
 import com.guillermonegrete.gallery.tags.data.toDto
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
@@ -26,7 +28,9 @@ class TagsController(
     private val fileMapper: FileMapper,
 ) {
 
-    private val ipAddress: String by lazy { getLocalIpAddress() }
+    @Autowired
+    private lateinit var networkConfig: NetworkConfig
+    private val ipAddress: String by lazy { networkConfig.getLocalIpAddress() }
 
     @GetMapping("/tags")
     fun getAllTags(): ResponseEntity<List<TagDto>> {

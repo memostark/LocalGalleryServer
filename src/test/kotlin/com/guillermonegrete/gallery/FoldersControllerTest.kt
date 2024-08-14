@@ -2,6 +2,7 @@ package com.guillermonegrete.gallery
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.guillermonegrete.gallery.config.NetworkConfig
 import com.guillermonegrete.gallery.data.*
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.ImageFileDTO
@@ -12,6 +13,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.hamcrest.collection.IsCollectionWithSize.hasSize
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -27,7 +29,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import java.net.InetAddress
 
 
 @WebMvcTest(controllers = [FoldersController::class])
@@ -47,11 +48,17 @@ class FoldersControllerTest(
 
     @MockkBean private lateinit var mediaFolderRepository: MediaFolderRepository
     @MockkBean private lateinit var mediaFileRepository: MediaFileRepository
+    @MockkBean private lateinit var networkConfig: NetworkConfig
 
     @Value("\${base.path}")
     private lateinit var path: String
 
-    private val ipAddress = InetAddress.getLocalHost().hostAddress
+    private val ipAddress = "dummy-address"
+
+    @BeforeEach
+    fun setUp() {
+        every { networkConfig.getLocalIpAddress() } returns ipAddress
+    }
 
     @Throws(Exception::class)
     @Test
