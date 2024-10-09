@@ -1,16 +1,23 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-	id("org.springframework.boot") version "2.4.11"
+	id("org.springframework.boot") version "3.3.4"
 	id("io.spring.dependency-management") version "1.0.9.RELEASE"
 	id ("org.flywaydb.flyway") version "7.14.0"
-	kotlin("jvm") version "1.5.0"
-	kotlin("plugin.spring") version "1.5.0"
+	val kotlinVersion = "2.0.20"
+	kotlin("jvm") version kotlinVersion
+	kotlin("plugin.spring") version kotlinVersion
 }
 
 group = "com.guillermonegrete"
 version = "1.10.1"
-java.sourceCompatibility = JavaVersion.VERSION_1_8
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
 
 repositories {
 	mavenCentral()
@@ -53,19 +60,14 @@ tasks.withType<Test> {
 	useJUnitPlatform()
 }
 
-tasks.withType<KotlinCompile> {
-	kotlinOptions {
-		freeCompilerArgs = listOf("-Xjsr305=strict")
-		jvmTarget = "1.8"
+kotlin {
+	compilerOptions {
+		freeCompilerArgs.addAll("-Xjsr305=strict")
 	}
 }
 
 tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
 	launchScript()
-}
-val compileKotlin: KotlinCompile by tasks
-compileKotlin.kotlinOptions {
-	languageVersion = "1.5"
 }
 
 flyway {
