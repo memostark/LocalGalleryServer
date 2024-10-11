@@ -2,9 +2,16 @@ package com.guillermonegrete.gallery.tags.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.guillermonegrete.gallery.data.MediaFile
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.JoinTable
+import jakarta.persistence.ManyToMany
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import javax.persistence.*
 
 /**
  * Represent a tag in the database.
