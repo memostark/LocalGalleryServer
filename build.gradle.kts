@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
 	id("org.springframework.boot") version "3.3.4"
@@ -34,7 +32,7 @@ dependencies {
 
 	// Mysql with jpa
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-	runtimeOnly("mysql:mysql-connector-java")
+	runtimeOnly("com.mysql:mysql-connector-j:9.0.0")
 	// For testing
 	runtimeOnly("com.h2database:h2")
 
@@ -42,6 +40,7 @@ dependencies {
 
 	// Database migration helper
 	implementation("org.flywaydb:flyway-core")
+	implementation("org.flywaydb:flyway-mysql")
 
 	implementation("org.springdoc:springdoc-openapi-ui:1.8.0")
 

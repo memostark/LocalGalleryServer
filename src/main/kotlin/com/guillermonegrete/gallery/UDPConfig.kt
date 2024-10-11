@@ -3,7 +3,6 @@ package com.guillermonegrete.gallery
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.integration.dsl.IntegrationFlow
-import org.springframework.integration.dsl.IntegrationFlows
 import org.springframework.integration.ip.udp.UnicastReceivingChannelAdapter
 import org.springframework.integration.ip.udp.UnicastSendingMessageHandler
 import org.springframework.integration.support.MessageBuilder
@@ -15,7 +14,7 @@ class UDPConfig {
 
     @Bean
     fun processUniCastUdpMessage(): IntegrationFlow {
-        return IntegrationFlows
+        return IntegrationFlow
                 .from(UnicastReceivingChannelAdapter(80).apply {
                     receiveBufferSize = 1024
                     setLookupHost(false)
