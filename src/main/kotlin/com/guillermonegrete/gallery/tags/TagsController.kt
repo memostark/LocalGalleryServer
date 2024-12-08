@@ -40,18 +40,22 @@ class TagsController(
     }
 
     @PostMapping("/tags/add")
-    fun createTag(@RequestParam name: String): ResponseEntity<TagEntity>{
+    fun createTag(@RequestParam name: String): ResponseEntity<Any> {
+        if (name.isBlank()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tag can't be blank")
+
         return try {
             val tag = tagRepo.save(TagEntity(name))
             ResponseEntity(tag, HttpStatus.OK)
         } catch (ex: DataIntegrityViolationException){
             println("Duplicate entry for $name")
-            ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+            ResponseEntity("Duplicate tag", HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 
     @PostMapping("files/{id}/tags")
     fun addTag(@PathVariable id: Long, @RequestBody tag: TagRequest): ResponseEntity<TagEntity> {
+        if (tag.name.isBlank()) throw Exception("Tag can't be blank")
+
         val newTag = filesRepo.findById(id).map { file ->
             val tagId = tag.id
 
