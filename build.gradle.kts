@@ -1,9 +1,9 @@
 
 plugins {
-	id("org.springframework.boot") version "3.3.4"
+	id("org.springframework.boot") version "3.4.1"
 	id("io.spring.dependency-management") version "1.0.9.RELEASE"
 	id ("org.flywaydb.flyway") version "7.14.0"
-	val kotlinVersion = "2.0.20"
+	val kotlinVersion = "2.1.0"
 	kotlin("jvm") version kotlinVersion
 	kotlin("plugin.spring") version kotlinVersion
 }
@@ -13,7 +13,7 @@ version = "1.11.1"
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
+		languageVersion = JavaLanguageVersion.of(23)
 	}
 }
 
@@ -52,7 +52,7 @@ dependencies {
 	testImplementation("org.junit.jupiter:junit-jupiter-api")
 	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 	// For testing with mocks in Kotlin
-	testImplementation("com.ninja-squad:springmockk:1.1.3")
+	testImplementation("com.ninja-squad:springmockk:4.0.2")
 }
 
 tasks.withType<Test> {
