@@ -3,7 +3,7 @@ plugins {
 	id("org.springframework.boot") version "3.4.1"
 	id("io.spring.dependency-management") version "1.0.9.RELEASE"
 	id ("org.flywaydb.flyway") version "7.14.0"
-	val kotlinVersion = "2.1.20"
+	val kotlinVersion = "2.2.0"
 	kotlin("jvm") version kotlinVersion
 	kotlin("plugin.spring") version kotlinVersion
 }
