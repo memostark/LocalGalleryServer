@@ -85,6 +85,21 @@ class TagsController(
         return ResponseEntity(page, HttpStatus.OK)
     }
 
+    @GetMapping("tags/files")
+    fun getFilesByTags(@RequestBody rawIds: List<Long>, pageable: Pageable): ResponseEntity<SimplePage<FileDTO>>{
+        if(rawIds.isEmpty()) throw Exception("The tag list is empty")
+
+        val ids = rawIds.filter { tagRepo.existsById(it) }
+        if (ids.isEmpty()) return ResponseEntity(SimplePage(), HttpStatus.OK)
+
+        val filesPage = if (ids.size == 1) filesRepo.findFilesByTagsId(ids.first(), pageable) else filesRepo.findFilesByTagsIds(ids, ids.size, pageable)
+
+        val finalFiles = filesPage.content.map { fileMapper.toSingleDto(it, ipAddress) }
+
+        val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
+        return ResponseEntity(page, HttpStatus.OK)
+    }
+
     @PostMapping("tags/{id}/files")
     fun addTagToFiles(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<FileDTO>> {
         val tag = tagRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
@@ -122,6 +137,21 @@ class TagsController(
 
         val filesPage = filesRepo.findFilesByTagsIdAndFolderId(tagId, folderId, pageable)
         val finalFiles = filesPage.content.map { fileMapper.toDtoWithHost(it, ipAddress) }
+
+        val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
+        return ResponseEntity(page, HttpStatus.OK)
+    }
+
+    @GetMapping("folders/{folderId}/files")
+    fun getFilesByFolderAndTag(@PathVariable folderId: Long, @RequestBody rawIds: List<Long>, pageable: Pageable): ResponseEntity<SimplePage<FileDTO>>{
+        if(!folderRepo.existsById(folderId)) throw Exception("Folder with id $folderId not found")
+        if(rawIds.isEmpty()) throw Exception("The tag list is empty")
+
+        val ids = rawIds.filter { tagRepo.existsById(it) }
+        if (ids.isEmpty()) return ResponseEntity(SimplePage(), HttpStatus.OK)
+
+        val filesPage = if (ids.size == 1) filesRepo.findFilesByTagsIdAndFolderId(ids.first(), folderId, pageable) else filesRepo.findFilesByTagsIdsAndFolderId(ids, ids.size, folderId, pageable)
+        val finalFiles = filesPage.content.map { fileMapper.toSingleDto(it, ipAddress) }
 
         val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
         return ResponseEntity(page, HttpStatus.OK)
