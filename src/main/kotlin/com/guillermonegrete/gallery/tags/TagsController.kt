@@ -85,14 +85,14 @@ class TagsController(
         return ResponseEntity(page, HttpStatus.OK)
     }
 
-    @GetMapping("tags/files")
+    @PostMapping("tags/files")
     fun getFilesByTags(@RequestBody rawIds: List<Long>, pageable: Pageable): ResponseEntity<SimplePage<FileDTO>>{
         if(rawIds.isEmpty()) throw Exception("The tag list is empty")
 
         val ids = rawIds.filter { tagRepo.existsById(it) }
         if (ids.isEmpty()) return ResponseEntity(SimplePage(), HttpStatus.OK)
 
-        val filesPage = if (ids.size == 1) filesRepo.findFilesByTagsId(ids.first(), pageable) else filesRepo.findFilesByTagsIds(ids, ids.size, pageable)
+        val filesPage = if (ids.size == 1) filesRepo.findFilesByTagsId(ids.first(), pageable) else filesRepo.findFilesByTagsIds(ids, pageable)
 
         val finalFiles = filesPage.content.map { fileMapper.toSingleDto(it, ipAddress) }
 
@@ -142,7 +142,7 @@ class TagsController(
         return ResponseEntity(page, HttpStatus.OK)
     }
 
-    @GetMapping("folders/{folderId}/files")
+    @PostMapping("folders/{folderId}/files")
     fun getFilesByFolderAndTag(@PathVariable folderId: Long, @RequestBody rawIds: List<Long>, pageable: Pageable): ResponseEntity<SimplePage<FileDTO>>{
         if(!folderRepo.existsById(folderId)) throw Exception("Folder with id $folderId not found")
         if(rawIds.isEmpty()) throw Exception("The tag list is empty")
@@ -150,7 +150,7 @@ class TagsController(
         val ids = rawIds.filter { tagRepo.existsById(it) }
         if (ids.isEmpty()) return ResponseEntity(SimplePage(), HttpStatus.OK)
 
-        val filesPage = if (ids.size == 1) filesRepo.findFilesByTagsIdAndFolderId(ids.first(), folderId, pageable) else filesRepo.findFilesByTagsIdsAndFolderId(ids, ids.size, folderId, pageable)
+        val filesPage = if (ids.size == 1) filesRepo.findFilesByTagsIdAndFolderId(ids.first(), folderId, pageable) else filesRepo.findFilesByTagsIdsAndFolderId(ids, folderId, pageable)
         val finalFiles = filesPage.content.map { fileMapper.toSingleDto(it, ipAddress) }
 
         val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
