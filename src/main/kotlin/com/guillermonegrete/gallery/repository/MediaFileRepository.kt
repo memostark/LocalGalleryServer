@@ -14,11 +14,23 @@ interface MediaFileRepository : JpaRepository<MediaFile, Long>{
 
     fun findFilesByTagsId(tagId: Long, pageable: Pageable): Page<MediaFile>
 
+    /**
+     * Gets a page of all the files that have all the specified tags applied.
+     */
+    fun findFilesByTagsIds(tagIds: List<Long>, pageable: Pageable): Page<MediaFile>
+       = findFilesByTagsIds(tagIds, tagIds.size, pageable)
+
     @Query("""select file from MediaFile file 
         where :numberOfTags = (select count(tag.id) from MediaFile file2 
                                 inner join file2.tags tag 
                                 where file2.id = file.id and tag.id in (:tagIds))""")
     fun findFilesByTagsIds(tagIds: List<Long>, numberOfTags: Int, pageable: Pageable): Page<MediaFile>
+
+    /**
+     * Gets a page of all the files that have all the specified tags applied for the specified folder.
+     */
+    fun findFilesByTagsIdsAndFolderId(tagIds: List<Long>, folderId: Long, pageable: Pageable): Page<MediaFile>
+            = findFilesByTagsIdsAndFolderId(tagIds, tagIds.size, folderId,  pageable)
 
     @Query("""select file from MediaFile file 
         where file.folder.id = :folderId AND 
