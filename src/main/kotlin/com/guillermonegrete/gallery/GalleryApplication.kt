@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean
 
 @SpringBootApplication
 class GalleryApplication{
-    @Value("\${base.path}")
+    @Value("\${final.path}")
     private lateinit var basePath: String
 
     @Value("\${checkfolder}")
