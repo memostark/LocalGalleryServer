@@ -45,7 +45,7 @@ class FoldersController(
             Folder(folder.name, coverUrl, folder.files.size, folder.id)
         }
 
-        return PagedFolderResponse(File(basePath).nameWithoutExtension, SimplePage(finalFolders, folders.totalPages, folders.totalElements.toInt()))
+        return PagedFolderResponse(getFolderName(), SimplePage(finalFolders, folders.totalPages, folders.totalElements.toInt()))
     }
 
     @GetMapping("/folders/{subFolder}")
@@ -127,5 +127,15 @@ class FoldersController(
     fun MediaFolder.toDto(fileName: String): Folder {
         val coverUrl = "http://$ipAddress/images/$name/$fileName"
         return Folder(name, coverUrl, files.size, id)
+    }
+
+    fun getFolderName(): String {
+        val folder = File(basePath)
+        return if (folder.exists()) {
+            folder.nameWithoutExtension
+        } else {
+            val paths = basePath.split("\\", "/")
+            paths.last()
+        }
     }
 }
