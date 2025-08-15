@@ -18,5 +18,6 @@ The program can also be run using Docker:
 
 ```
 docker build -t gallery_app .
-docker run -p 80:80 -v /path/to/folder:/tests -e "BASE_PATH=/tests" -e OUTBOUND_IP_ADDRESS=your_ip gallery_app
+export BASE_PATH="/path/to/folder"
+docker run -p 80:80 -e "BASE_PATH=${BASE_PATH}" -e "VOLUME_PATH=/images" --mount type=bind,src="${BASE_PATH}",target=/images -e OUTBOUND_IP_ADDRESS=your_ip gallery_app
 ```
