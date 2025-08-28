@@ -18,16 +18,16 @@ interface MediaFolderRepository: JpaRepository<MediaFolder, Long>{
     /**
      * Returns all media folders by the count of their children files.
      */
-    @Query(
-        value = "select f from MediaFolder f join f.files fi group by f Order By COUNT(fi) asc",
-        countQuery = "select count(f) from MediaFolder f"
-    )
+    @Query(value = "SELECT * FROM media_folder " +
+            "group by media_folder.id order by (SELECT count(folder_id) FROM media_file where folder_id = media_folder.id) asc, media_folder.id",
+        countQuery = "SELECT count(*) FROM media_folder",
+        nativeQuery = true)
     fun findAllMediaFolderByFileCountAsc(pageable: Pageable): Page<MediaFolder>
 
-    @Query(
-        value = "select f from MediaFolder f join f.files fi group by f Order By COUNT(fi) desc",
-        countQuery = "select count(f) from MediaFolder f"
-    )
+    @Query(value = "SELECT * FROM media_folder " +
+            "group by media_folder.id order by (SELECT count(folder_id) FROM media_file where folder_id = media_folder.id) desc, media_folder.id",
+        countQuery = "SELECT count(*) FROM media_folder",
+        nativeQuery = true)
     fun findAllMediaFolderByFileCountDesc(pageable: Pageable): Page<MediaFolder>
 
     /**
