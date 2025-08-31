@@ -118,11 +118,12 @@ class FoldersController(
         val sort = pageable.sort.firstOrNull()
         return if(sort?.property == "count") {
             val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
-            if(sort.isDescending)
+            val result = if(sort.isDescending)
                 mediaFolderRepo.findByNameContainingAndFileCountDesc(query, newPageable) else mediaFolderRepo.findByNameContainingAndFileCountAsc(query, newPageable)
+            result.map { Folder(it.name, it.coverUrl ?: "", it.count, it.id) }
         } else {
-            mediaFolderRepo.findByNameContaining(query, pageable)
-        }.map { Folder(it.name, it.getCover(), it.files.size, it.id)  }
+            mediaFolderRepo.findByNameContaining(query, pageable).map { Folder(it.name, it.getCover(), it.files.size, it.id)  }
+        }
     }
 
     fun MediaFolder.toDto(fileName: String): Folder {
