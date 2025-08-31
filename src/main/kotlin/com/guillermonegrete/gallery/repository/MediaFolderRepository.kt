@@ -18,18 +18,12 @@ interface MediaFolderRepository: JpaRepository<MediaFolder, Long>{
     /**
      * Returns all media folders by the count of their children files.
      */
-    @Query(value = "SELECT name, " +
-            "IFNULL((SELECT filename FROM media_file where media_file.id = cover_file_id), (SELECT filename FROM media_file where media_file.folder_id = media_folder.id LIMIT 1)) as coverUrl, " + //
-            "(SELECT count(folder_id) FROM media_file where folder_id = media_folder.id) as count, id FROM media_folder " +
-            "group by media_folder.id order by count asc, media_folder.id",
+    @Query(value = query + folderAscOrder,
         countQuery = "SELECT count(*) FROM media_folder",
         nativeQuery = true)
     fun findAllMediaFolderByFileCountAsc(pageable: Pageable): Page<FolderDto>
 
-    @Query(value = "SELECT name, " +
-            "IFNULL((SELECT filename FROM media_file where media_file.id = cover_file_id), (SELECT filename FROM media_file where media_file.folder_id = media_folder.id LIMIT 1)) as coverUrl, " + //
-            "(SELECT count(folder_id) FROM media_file where folder_id = media_folder.id) as count, id FROM media_folder " +
-            "group by media_folder.id order by count desc, media_folder.id",
+    @Query(value = query + folderDescOrder,
         countQuery = "SELECT count(*) FROM media_folder",
         nativeQuery = true)
     fun findAllMediaFolderByFileCountDesc(pageable: Pageable): Page<FolderDto>
@@ -49,6 +43,14 @@ interface MediaFolderRepository: JpaRepository<MediaFolder, Long>{
     )
     fun findByNameContainingAndFileCountDesc(name: String, pageable: Pageable): Page<MediaFolder>
 }
+
+private const val query = "SELECT name, " +
+        "IFNULL((SELECT filename FROM media_file where media_file.id = cover_file_id), (SELECT filename FROM media_file where media_file.folder_id = media_folder.id LIMIT 1)) as coverUrl, " + //
+        "(SELECT count(folder_id) FROM media_file where folder_id = media_folder.id) as count, id FROM media_folder "
+
+private const val folderAscOrder = "group by media_folder.id order by count asc, media_folder.id"
+
+private const val folderDescOrder = "group by media_folder.id order by count desc, media_folder.id"
 
 interface FolderDto {
     val name:String
