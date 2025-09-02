@@ -39,10 +39,10 @@ class FoldersController(
         val folders = if(query == null) getFolderPage(pageable) else getFolderPage(query, pageable)
 
         val finalFolders = folders.content.map { folder ->
-            val firstFilename = folder.coverFile?.filename ?: folder.files.firstOrNull()?.filename ?: ""
+            val firstFilename = folder.coverUrl
             val coverUrl = "http://$ipAddress/images/${folder.name}/$firstFilename"
 
-            Folder(folder.name, coverUrl, folder.files.size, folder.id)
+            folder.copy(coverUrl = coverUrl)
         }
 
         return PagedFolderResponse(getFolderName(), SimplePage(finalFolders, folders.totalPages, folders.totalElements.toInt()))
@@ -98,29 +98,31 @@ class FoldersController(
     /**
      * Returns the page of folders by the given pageable.
      */
-    private fun getFolderPage(pageable: Pageable): Page<MediaFolder> {
+    private fun getFolderPage(pageable: Pageable): Page<Folder> {
         val sort = pageable.sort.firstOrNull()
         return if(sort?.property == "count") {
             // Sorting by child count is a special case because it's not an entity column
             // Created pageable without the "count" sort field, otherwise it will produce an error
             val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
-            if(sort.isDescending) mediaFolderRepo.findAllMediaFolderByFileCountDesc(newPageable)  else mediaFolderRepo.findAllMediaFolderByFileCountAsc(newPageable)
+            val result = if(sort.isDescending) mediaFolderRepo.findAllMediaFolderByFileCountDesc(newPageable) else mediaFolderRepo.findAllMediaFolderByFileCountAsc(newPageable)
+            result.map { Folder(it.name, it.coverUrl ?: "", it.count, it.id) }
         } else {
-            mediaFolderRepo.findAll(pageable)
+            mediaFolderRepo.findAll(pageable).map { Folder(it.name, it.getCover(), it.files.size, it.id) }
         }
     }
 
     /**
      * Returns the page of folders by the given pageable that contains the query in the name.
      */
-    fun getFolderPage(query: String, pageable: Pageable): Page<MediaFolder> {
+    fun getFolderPage(query: String, pageable: Pageable): Page<Folder> {
         val sort = pageable.sort.firstOrNull()
         return if(sort?.property == "count") {
             val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
-            if(sort.isDescending)
+            val result = if(sort.isDescending)
                 mediaFolderRepo.findByNameContainingAndFileCountDesc(query, newPageable) else mediaFolderRepo.findByNameContainingAndFileCountAsc(query, newPageable)
+            result.map { Folder(it.name, it.coverUrl ?: "", it.count, it.id) }
         } else {
-            mediaFolderRepo.findByNameContaining(query, pageable)
+            mediaFolderRepo.findByNameContaining(query, pageable).map { Folder(it.name, it.getCover(), it.files.size, it.id)  }
         }
     }
 
@@ -138,4 +140,6 @@ class FoldersController(
             paths.last()
         }
     }
+
+    private fun MediaFolder.getCover() = coverFile?.filename ?: files.firstOrNull()?.filename ?: ""
 }
