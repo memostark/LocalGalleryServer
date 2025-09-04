@@ -1,5 +1,7 @@
 package com.guillermonegrete.gallery.data
 
+import com.guillermonegrete.gallery.tags.data.TagFile
+import com.guillermonegrete.gallery.tags.data.TagFolder
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -8,6 +10,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToMany
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OneToOne
 
@@ -20,6 +23,8 @@ data class MediaFolder(
     @OneToOne
     @JoinColumn(name = "cover_file_id")
     var coverFile: MediaFile? = null,
+    @ManyToMany(targetEntity = TagFolder::class, mappedBy = "folders")
+    val tags: MutableSet<TagFolder> = mutableSetOf(),
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     val id: Long = 0,
 ) {

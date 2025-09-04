@@ -8,6 +8,8 @@ import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.data.TagDto
 import com.guillermonegrete.gallery.tags.data.TagEntity
+import com.guillermonegrete.gallery.tags.data.TagFile
+import com.guillermonegrete.gallery.tags.data.TagFolder
 import com.guillermonegrete.gallery.tags.data.TagRequest
 import com.guillermonegrete.gallery.tags.data.toDto
 import org.springframework.beans.factory.annotation.Autowired
@@ -23,6 +25,7 @@ import java.net.InetAddress
 @RestController
 class TagsController(
     private val tagRepo: TagsRepository,
+    private val fileTagsRepo: FileTagsRepository,
     private val filesRepo: MediaFileRepository,
     private val folderRepo: MediaFolderRepository,
     private val fileMapper: FileMapper,
@@ -35,7 +38,13 @@ class TagsController(
     @GetMapping("/tags")
     fun getAllTags(): ResponseEntity<List<TagDto>> {
         val tags = tagRepo.findAll()
-        val tagsDto = tags.map { it.toDto() }
+        val tagsDto = tags.map {
+            when(it) {
+                is TagFile -> it.toDto()
+                is TagFolder -> it.toDto()
+                else -> TagDto("", 0)
+            }
+        }
         return if (tagsDto.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tagsDto, HttpStatus.OK)
     }
 
@@ -60,14 +69,14 @@ class TagsController(
             val tagId = tag.id
 
             if(tagId != 0L){
-                val savedTag = tagRepo.findById(tagId)
+                val savedTag = fileTagsRepo.findById(tagId)
                     .orElseThrow { Exception("Tag with id $tagId not found") }
                 file.addTag(savedTag)
                 filesRepo.save(file)
                 return@map savedTag
             }
 
-            val completeTag = tagRepo.findByName(tag.name) ?: TagEntity(tag.name, id = tag.id)
+            val completeTag = fileTagsRepo.findByName(tag.name) ?: TagFile(tag.name, id = tag.id)
             file.addTag(completeTag)
             tagRepo.save(completeTag)
         }.orElseThrow { Exception("File with id $id not found") }
@@ -102,7 +111,7 @@ class TagsController(
 
     @PostMapping("tags/{id}/files")
     fun addTagToFiles(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<FileDTO>> {
-        val tag = tagRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
+        val tag = tagRepo.findByIdOrNull(id) as? TagFile ?: throw RuntimeException("Tag id $id not found")
 
         val files = filesRepo.findByIdIn(fileIds)
 
@@ -114,9 +123,9 @@ class TagsController(
 
     @PostMapping("files/{id}/multitag")
     fun addTagsToFile(@PathVariable id: Long, @RequestBody tagIds: List<Long>): ResponseEntity<List<TagEntity>> {
-        val file = filesRepo.findByIdOrNull(id) ?: throw RuntimeException("File id $id not found")
+        val file = filesRepo.findByIdOrNull(id)  ?: throw RuntimeException("File id $id not found")
 
-        val tags = tagRepo.findByIdIn(tagIds)
+        val tags = fileTagsRepo.findByIdIn(tagIds)
 
         tags.forEach { file.addTag(it) }
         filesRepo.save(file)
