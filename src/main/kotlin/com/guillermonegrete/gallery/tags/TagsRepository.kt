@@ -3,6 +3,7 @@ package com.guillermonegrete.gallery.tags
 import com.guillermonegrete.gallery.tags.data.TagDto
 import com.guillermonegrete.gallery.tags.data.TagEntity
 import com.guillermonegrete.gallery.tags.data.TagFile
+import com.guillermonegrete.gallery.tags.data.TagFolder
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 
@@ -22,4 +23,11 @@ interface FileTagsRepository: JpaRepository<TagFile, Long>{
     fun findByName(name: String): TagFile?
 
     fun findByIdIn(ids: List<Long>): List<TagFile>
+}
+
+interface FolderTagsRepository: JpaRepository<TagFolder, Long>{
+
+    fun findByName(name: String): TagFolder?
+
+    fun findByIdIn(ids: List<Long>): List<TagFolder>
 }

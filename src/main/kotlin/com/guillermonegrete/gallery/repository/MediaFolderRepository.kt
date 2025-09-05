@@ -1,5 +1,6 @@
 package com.guillermonegrete.gallery.repository
 
+import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.MediaFolder
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -44,6 +45,8 @@ interface MediaFolderRepository: JpaRepository<MediaFolder, Long>{
         nativeQuery = true
     )
     fun findByNameContainingAndFileCountDesc(name: String, pageable: Pageable): Page<FolderDto>
+
+    fun findByIdIn(ids: List<Long>): List<MediaFolder>
 }
 
 private const val folderDtoSelect = "SELECT name, " +

@@ -31,4 +31,12 @@ data class MediaFolder(
     override fun toString(): String {
         return "{name: $name, id: $id}"
     }
+
+    /**
+     * Returns true if the tag wasn't already applied, false otherwise.
+     */
+    fun addTag(tag: TagFolder): Boolean {
+        tag.folders.add(this)
+        return tags.add(tag)
+    }
 }

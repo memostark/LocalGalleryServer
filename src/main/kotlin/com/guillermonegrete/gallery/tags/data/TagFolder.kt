@@ -23,6 +23,7 @@ open class TagFolder(
     )
     @JsonIgnore
     open val folders: MutableSet<MediaFolder> = mutableSetOf(),
-): TagEntity(name, creationDate)
+    id: Long = 0,
+): TagEntity(name, creationDate, id)
 
 fun TagFolder.toDto() = TagDto(name, folders.size.toLong(), creationDate, id)

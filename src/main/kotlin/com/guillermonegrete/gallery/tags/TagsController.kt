@@ -1,9 +1,13 @@
 package com.guillermonegrete.gallery.tags
 
 import com.guillermonegrete.gallery.config.NetworkConfig
+import com.guillermonegrete.gallery.data.Folder
+import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
+import com.guillermonegrete.gallery.data.toDto
+import com.guillermonegrete.gallery.repository.FolderDto
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.data.TagDto
@@ -26,6 +30,7 @@ import java.net.InetAddress
 class TagsController(
     private val tagRepo: TagsRepository,
     private val fileTagsRepo: FileTagsRepository,
+    private val folderTagsRepo: FolderTagsRepository,
     private val filesRepo: MediaFileRepository,
     private val folderRepo: MediaFolderRepository,
     private val fileMapper: FileMapper,
@@ -42,7 +47,6 @@ class TagsController(
             when(it) {
                 is TagFile -> it.toDto()
                 is TagFolder -> it.toDto()
-                else -> TagDto("", 0)
             }
         }
         return if (tagsDto.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tagsDto, HttpStatus.OK)
@@ -53,10 +57,11 @@ class TagsController(
         if (name.isBlank()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tag can't be blank")
 
         return try {
-            val tag = tagRepo.save(TagEntity(name))
+            val tag = fileTagsRepo.save(TagFile(name))
             ResponseEntity(tag, HttpStatus.OK)
         } catch (ex: DataIntegrityViolationException){
             println("Duplicate entry for $name")
+            ex.printStackTrace()
             ResponseEntity("Duplicate tag", HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
@@ -111,7 +116,7 @@ class TagsController(
 
     @PostMapping("tags/{id}/files")
     fun addTagToFiles(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<FileDTO>> {
-        val tag = tagRepo.findByIdOrNull(id) as? TagFile ?: throw RuntimeException("Tag id $id not found")
+        val tag = fileTagsRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
 
         val files = filesRepo.findByIdIn(fileIds)
 
@@ -131,6 +136,67 @@ class TagsController(
         filesRepo.save(file)
         return ResponseEntity(tags, HttpStatus.OK)
     }
+
+    //region MyRegionName
+    @PostMapping("/folders/tags/add")
+    fun createFolderTag(@RequestParam name: String): ResponseEntity<Any> {
+        if (name.isBlank()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tag can't be blank")
+
+        return try {
+            val tag = folderTagsRepo.save(TagFolder(name))
+            ResponseEntity(tag, HttpStatus.OK)
+        } catch (ex: DataIntegrityViolationException){
+            println("Duplicate entry for $name")
+            ex.printStackTrace()
+            ResponseEntity("Duplicate tag", HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+    }
+
+    @PostMapping("folders/{id}/tags")
+    fun addFolderTag(@PathVariable id: Long, @RequestBody tag: TagRequest): ResponseEntity<TagEntity> {
+        if (tag.name.isBlank()) throw Exception("Tag can't be blank")
+
+        val folder = folderRepo.findByIdOrNull(id) ?: throw Exception("Folder with id $id not found")
+        val tagId = tag.id
+
+        if(tagId != 0L){
+            val savedTag = folderTagsRepo.findById(tagId)
+                .orElseThrow { Exception("Tag with id $tagId not found") }
+            folder.addTag(savedTag)
+            folderRepo.save(folder)
+            return ResponseEntity(savedTag, HttpStatus.OK)
+        }
+
+        val completeTag = folderTagsRepo.findByName(tag.name) ?: TagFolder(tag.name, id = tag.id)
+        folder.addTag(completeTag)
+        tagRepo.save(completeTag)
+        return ResponseEntity(completeTag, HttpStatus.OK)
+    }
+
+    @PostMapping("tags/{id}/folders")
+    fun addTagToFolders(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<Folder>> {
+        val tag = folderTagsRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
+
+        val files = folderRepo.findByIdIn(fileIds)
+
+        val updatedFiles = files.filter { it.addTag(tag) }
+        folderRepo.saveAll(files)
+        val fileDTOs = updatedFiles.map { it.toDto() }
+        return ResponseEntity(fileDTOs, HttpStatus.OK)
+    }
+
+    @PostMapping("folders/{id}/multitag")
+    fun addTagsToFolder(@PathVariable id: Long, @RequestBody tagIds: List<Long>): ResponseEntity<List<TagEntity>> {
+        val file = folderRepo.findByIdOrNull(id)  ?: throw RuntimeException("File id $id not found")
+
+        val tags = folderTagsRepo.findByIdIn(tagIds)
+
+        tags.forEach { file.addTag(it) }
+        folderRepo.save(file)
+        return ResponseEntity(tags, HttpStatus.OK)
+    }
+
+    //endregion
 
     @GetMapping("folders/{id}/tags")
     fun getTagsByFolder(@PathVariable id: Long): ResponseEntity<Set<TagDto>> {

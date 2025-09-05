@@ -19,7 +19,7 @@ import java.time.temporal.ChronoUnit
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name="tag_type",
     discriminatorType = DiscriminatorType.INTEGER)
-open class TagEntity(
+sealed class TagEntity(
     @Column(nullable = false, unique = true)
     open val name: String = "",
     @Column(name = "creation_date", nullable = false)
