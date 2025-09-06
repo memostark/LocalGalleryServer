@@ -47,6 +47,7 @@ class TagsController(
             when(it) {
                 is TagFile -> it.toDto()
                 is TagFolder -> it.toDto()
+                else -> TagDto("", 0)
             }
         }
         return if (tagsDto.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tagsDto, HttpStatus.OK)
@@ -137,7 +138,8 @@ class TagsController(
         return ResponseEntity(tags, HttpStatus.OK)
     }
 
-    //region MyRegionName
+    //region Folders
+
     @PostMapping("/folders/tags/add")
     fun createFolderTag(@RequestParam name: String): ResponseEntity<Any> {
         if (name.isBlank()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tag can't be blank")
@@ -161,7 +163,7 @@ class TagsController(
 
         if(tagId != 0L){
             val savedTag = folderTagsRepo.findById(tagId)
-                .orElseThrow { Exception("Tag with id $tagId not found") }
+                .orElseThrow { Exception("Folder tag with id $tagId not found") }
             folder.addTag(savedTag)
             folderRepo.save(folder)
             return ResponseEntity(savedTag, HttpStatus.OK)

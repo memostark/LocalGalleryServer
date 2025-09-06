@@ -13,13 +13,13 @@ import java.time.temporal.ChronoUnit
 @Entity
 @DiscriminatorValue("2")
 open class TagFolder(
-    name: String,
+    name: String = "",
     creationDate: Instant = Instant.now().truncatedTo(ChronoUnit.SECONDS),
     @ManyToMany
     @JoinTable(
-        name = "media_tags",
+        name = "folder_tags",
         joinColumns = [JoinColumn(name = "tag_id", referencedColumnName = "id")],
-        inverseJoinColumns = [JoinColumn(name = "media_id", referencedColumnName = "id")]
+        inverseJoinColumns = [JoinColumn(name = "folder_id", referencedColumnName = "id")]
     )
     @JsonIgnore
     open val folders: MutableSet<MediaFolder> = mutableSetOf(),
