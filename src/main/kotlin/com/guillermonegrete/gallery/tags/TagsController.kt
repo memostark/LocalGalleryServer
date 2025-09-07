@@ -2,12 +2,10 @@ package com.guillermonegrete.gallery.tags
 
 import com.guillermonegrete.gallery.config.NetworkConfig
 import com.guillermonegrete.gallery.data.Folder
-import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
 import com.guillermonegrete.gallery.data.toDto
-import com.guillermonegrete.gallery.repository.FolderDto
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.data.TagDto
@@ -173,6 +171,22 @@ class TagsController(
         folder.addTag(completeTag)
         tagRepo.save(completeTag)
         return ResponseEntity(completeTag, HttpStatus.OK)
+    }
+
+    @PostMapping("tags/folders")
+    fun getFoldersByTags(@RequestBody ids: List<Long>, pageable: Pageable): ResponseEntity<SimplePage<Folder>>{
+        if(ids.isEmpty()) throw Exception("The tag list is empty")
+
+        val finalIds = ids.filter { tagRepo.existsById(it) }
+        if (finalIds.isEmpty()) return ResponseEntity(SimplePage(), HttpStatus.OK)
+
+        val foldersPage = if (finalIds.size == 1)
+            folderRepo.findFoldersByTagId(finalIds.first(), pageable) else folderRepo.findFoldersByTagIds(finalIds, pageable)
+
+        val finalFiles = foldersPage.content.map { it.toDto() }
+
+        val page  = SimplePage(finalFiles, foldersPage.totalPages, foldersPage.totalElements.toInt())
+        return ResponseEntity(page, HttpStatus.OK)
     }
 
     @PostMapping("tags/{id}/folders")

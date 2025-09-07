@@ -47,6 +47,17 @@ interface MediaFolderRepository: JpaRepository<MediaFolder, Long>{
     fun findByNameContainingAndFileCountDesc(name: String, pageable: Pageable): Page<FolderDto>
 
     fun findByIdIn(ids: List<Long>): List<MediaFolder>
+
+    fun findFoldersByTagId(tagId: Long, pageable: Pageable): Page<MediaFolder>
+
+    fun findFoldersByTagIds(tagIds: List<Long>, pageable: Pageable)
+        = findFilesByTagsIds(tagIds, tagIds.size, pageable)
+
+    @Query("""select folder from MediaFolder folder 
+        where :numberOfTags = (select count(tag.id) from MediaFolder folder2 
+                                inner join folder2.tags tag 
+                                where folder2.id = folder.id and tag.id in (:tagIds))""")
+    fun findFilesByTagsIds(tagIds: List<Long>, numberOfTags: Int, pageable: Pageable): Page<MediaFolder>
 }
 
 private const val folderDtoSelect = "SELECT name, " +
