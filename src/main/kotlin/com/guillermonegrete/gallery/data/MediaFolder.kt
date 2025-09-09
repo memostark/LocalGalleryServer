@@ -39,4 +39,10 @@ data class MediaFolder(
         tag.folders.add(this)
         return tags.add(tag)
     }
+
+    fun removeTag(tagId: Long) {
+        val tag = tags.firstOrNull { it.id == tagId } ?: return
+        tags.remove(tag)
+        tag.folders.remove(this)
+    }
 }

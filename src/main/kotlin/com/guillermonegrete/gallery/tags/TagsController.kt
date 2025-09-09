@@ -243,6 +243,24 @@ class TagsController(
         return ResponseEntity(tags, HttpStatus.OK)
     }
 
+    @DeleteMapping("tags/folders/{id}")
+    fun deleteFolderTag(@PathVariable("id") id: Long): ResponseEntity<HttpStatus> {
+        folderTagsRepo.deleteById(id)
+        return ResponseEntity(HttpStatus.NO_CONTENT)
+    }
+
+    @DeleteMapping("/folders/{folderId}/tags/{tagId}")
+    fun deleteTagFromFolder(
+        @PathVariable folderId: Long,
+        @PathVariable tagId: Long
+    ): ResponseEntity<HttpStatus> {
+        val folder = folderRepo.findById(folderId)
+            .orElseThrow { RuntimeException("Folder not found with id = $folderId") }
+        folder.removeTag(tagId)
+        folderRepo.save(folder)
+        return ResponseEntity(HttpStatus.NO_CONTENT)
+    }
+
     //endregion
 
     @GetMapping("folders/{id}/tags")
@@ -280,12 +298,12 @@ class TagsController(
     }
 
     @DeleteMapping("/files/{fileId}/tags/{tagId}")
-    fun deleteTagFromTutorial(
+    fun deleteTagFromFiles(
         @PathVariable fileId: Long,
         @PathVariable tagId: Long
     ): ResponseEntity<HttpStatus> {
         val file = filesRepo.findById(fileId)
-            .orElseThrow { RuntimeException("Not found Tutorial with id = $fileId") }
+            .orElseThrow { RuntimeException("File not found with id = $fileId") }
         file.removeTag(tagId)
         filesRepo.save(file)
         return ResponseEntity(HttpStatus.NO_CONTENT)
