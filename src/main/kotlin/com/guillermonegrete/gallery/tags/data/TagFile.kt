@@ -26,4 +26,4 @@ open class TagFile(
     id: Long = 0
 ): TagEntity(name, creationDate, id)
 
-fun TagFile.toDto() = TagDto(name, files.size.toLong(), creationDate, id)
+fun TagFile.toDto() = TagFileDto(name, files.size.toLong(), creationDate, id)

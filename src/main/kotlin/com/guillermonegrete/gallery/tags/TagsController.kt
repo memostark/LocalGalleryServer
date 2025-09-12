@@ -11,6 +11,7 @@ import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.data.TagDto
 import com.guillermonegrete.gallery.tags.data.TagEntity
 import com.guillermonegrete.gallery.tags.data.TagFile
+import com.guillermonegrete.gallery.tags.data.TagFileDto
 import com.guillermonegrete.gallery.tags.data.TagFolder
 import com.guillermonegrete.gallery.tags.data.TagRequest
 import com.guillermonegrete.gallery.tags.data.toDto
@@ -46,7 +47,7 @@ class TagsController(
             when(it) {
                 is TagFile -> it.toDto()
                 is TagFolder -> it.toDto()
-                else -> TagDto("", 0)
+                else -> TagFileDto("", 0)
             }
         }
         return if (tagsDto.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tagsDto, HttpStatus.OK)
@@ -138,6 +139,18 @@ class TagsController(
     }
 
     //region Folders
+
+    @GetMapping("/tags/folders")
+    fun getAllFolderTags(): ResponseEntity<Set<TagDto>> {
+        val tags = folderTagsRepo.getFolderTags()
+        return if (tags.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tags, HttpStatus.OK)
+    }
+
+    @GetMapping("/tags/folders/{id}")
+    fun getFolderTags(@PathVariable id: Long): ResponseEntity<Set<TagDto>> {
+        val folderTags = folderTagsRepo.getFolderTags(id)
+        return ResponseEntity(folderTags, HttpStatus.OK)
+    }
 
     @PostMapping("/folders/tags/add")
     fun createFolderTag(@RequestParam name: String): ResponseEntity<Any> {
@@ -265,8 +278,9 @@ class TagsController(
 
     @GetMapping("folders/{id}/tags")
     fun getTagsByFolder(@PathVariable id: Long): ResponseEntity<Set<TagDto>> {
-        val tagsDto = tagRepo.getTagsWithFilesByFolder(id)
-        return ResponseEntity(tagsDto, HttpStatus.OK)
+        val fileTags = fileTagsRepo.getTagsWithFilesByFolder(id)
+        val folderTags = folderTagsRepo.getFolderTags(id)
+        return ResponseEntity(fileTags + folderTags, HttpStatus.OK)
     }
 
     @GetMapping("folders/{folderId}/tags/{tagId}")

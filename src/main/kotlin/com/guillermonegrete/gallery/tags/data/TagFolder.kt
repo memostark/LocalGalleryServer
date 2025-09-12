@@ -26,4 +26,4 @@ open class TagFolder(
     id: Long = 0,
 ): TagEntity(name, creationDate, id)
 
-fun TagFolder.toDto() = TagDto(name, folders.size.toLong(), creationDate, id)
+fun TagFolder.toDto() = TagFolderDto(name, folders.size.toLong(), creationDate, id)
