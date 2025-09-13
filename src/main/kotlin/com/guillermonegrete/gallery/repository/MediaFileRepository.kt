@@ -17,14 +17,37 @@ interface MediaFileRepository : JpaRepository<MediaFile, Long>{
     /**
      * Gets a page of all the files that have all the specified tags applied.
      */
-    fun findFilesByTagsIds(tagIds: List<Long>, pageable: Pageable): Page<MediaFile>
-       = findFilesByTagsIds(tagIds, tagIds.size, pageable)
+    fun findFilesByFileTagsIds(tagIds: List<Long>, pageable: Pageable): Page<MediaFile>
+       = findFilesByFileTagsIds(tagIds, tagIds.size, pageable)
+
+    fun findFilesByFolderTagsIds(tagIds: List<Long>, pageable: Pageable): Page<MediaFile>
+            = findFilesByFolderTagsIds(tagIds, tagIds.size, pageable)
+
+    fun findFilesByTagsIds(tagIds: List<Long>, folderTagIds: List<Long>, pageable: Pageable): Page<MediaFile>
+            = findFilesByTagsIds(tagIds, folderTagIds, tagIds.size + folderTagIds.size, pageable)
 
     @Query("""select file from MediaFile file 
         where :numberOfTags = (select count(tag.id) from MediaFile file2 
                                 inner join file2.tags tag 
                                 where file2.id = file.id and tag.id in (:tagIds))""")
-    fun findFilesByTagsIds(tagIds: List<Long>, numberOfTags: Int, pageable: Pageable): Page<MediaFile>
+    fun findFilesByFileTagsIds(tagIds: List<Long>, numberOfTags: Int, pageable: Pageable): Page<MediaFile>
+
+    @Query("""select file from MediaFile file 
+        where :numberOfTags = (select count(tag.id) from MediaFolder folder 
+                                inner join folder.tags tag 
+                                where file.folder.id = folder.id and tag.id in (:tagIds))
+                                """)
+    fun findFilesByFolderTagsIds(tagIds: List<Long>, numberOfTags: Int, pageable: Pageable): Page<MediaFile>
+
+    @Query("""select file from MediaFile file 
+        where :numberOfTags = (select count(tag.id) from MediaFile file2 
+                                inner join file2.tags tag 
+                                where file2.id = file.id and tag.id in (:tagIds)) +
+                                (select count(tag.id) from MediaFolder folder 
+                                inner join folder.tags tag 
+                                where file.folder.id = folder.id and tag.id in (:folderTagIds))
+                                """)
+    fun findFilesByTagsIds(tagIds: List<Long>, folderTagIds: List<Long>, numberOfTags: Int, pageable: Pageable): Page<MediaFile>
 
     /**
      * Gets a page of all the files that have all the specified tags applied for the specified folder.
