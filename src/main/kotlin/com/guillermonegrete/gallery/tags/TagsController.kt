@@ -172,7 +172,7 @@ class TagsController(
         return ResponseEntity(folderTags, HttpStatus.OK)
     }
 
-    @PostMapping("/folders/tags/add")
+    @PostMapping("/tags/folders/add")
     fun createFolderTag(@RequestParam name: String): ResponseEntity<Any> {
         if (name.isBlank()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tag can't be blank")
 
@@ -203,7 +203,7 @@ class TagsController(
 
         val completeTag = folderTagsRepo.findByName(tag.name) ?: TagFolder(tag.name, id = tag.id)
         folder.addTag(completeTag)
-        tagRepo.save(completeTag)
+        folderTagsRepo.save(completeTag)
         return ResponseEntity(completeTag, HttpStatus.OK)
     }
 
@@ -354,5 +354,8 @@ class TagsController(
         return inetAddress.hostAddress
     }
 
-    data class FilterTagsRequest(val fileTagIds: List<Long>, val folderTagIds: List<Long>)
+    data class FilterTagsRequest(
+        val fileTagIds: List<Long> = emptyList(),
+        val folderTagIds: List<Long> = emptyList()
+    )
 }

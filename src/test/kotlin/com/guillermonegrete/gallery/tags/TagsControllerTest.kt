@@ -3,18 +3,21 @@ package com.guillermonegrete.gallery.tags
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.guillermonegrete.gallery.config.NetworkConfig
+import com.guillermonegrete.gallery.data.Folder
 import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.ImageEntity
 import com.guillermonegrete.gallery.data.files.dto.ImageFileDTO
+import com.guillermonegrete.gallery.data.toDto
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.data.TagDto
 import com.guillermonegrete.gallery.tags.data.TagEntity
 import com.guillermonegrete.gallery.tags.data.TagFile
 import com.guillermonegrete.gallery.tags.data.TagFileDto
+import com.guillermonegrete.gallery.tags.data.TagFolder
 import com.guillermonegrete.gallery.tags.data.TagFolderDto
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
@@ -64,7 +67,7 @@ class TagsControllerTest(
     @Test
     fun `Given tags, when get all endpoint called, then return them`(){
 
-        val tags = listOf(TagFile("my_tag"))
+        val tags = listOf(TagFile("my_tag"), TagFolder("my_folder_tag"))
         every { tagsRepository.findAll() } returns tags
 
         val result = mockMvc.perform(get("/tags"))
@@ -74,12 +77,12 @@ class TagsControllerTest(
 
         val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<List<TagEntity>>() {})
 
-        assertThat(resultResponse).hasSize(1)
-        val tagResult = resultResponse.first()
-        val expectedTag = tags.first()
-        assertTagEqual(expectedTag, tagResult)
+        assertThat(resultResponse).hasSize(2)
+        assertTagEqual(tags.first(), resultResponse.first())
+        assertTagEqual(tags[1], resultResponse[1])
     }
 
+    //region File tag tests
     @Test
     fun `Given no tags, when add endpoint called, then create new tag`(){
 
@@ -171,11 +174,13 @@ class TagsControllerTest(
     @Test
     fun `Given valid tag id, when get files by tag endpoint called, then files returned`(){
 
-        every { tagsRepository.existsById(0) } returns true
+        every { fileTagsRepository.existsById(0) } returns true
         val file = MediaFile("my_file.jpg", folder = MediaFolder("my_folder"))
-        every { mediaFileRepository.findFilesByTagsId(0, DEFAULT_PAGEABLE) } returns PageImpl(listOf(file), DEFAULT_PAGEABLE, 1)
+        every { mediaFileRepository.findFilesByFileTagsIds(listOf(0), DEFAULT_PAGEABLE) } returns PageImpl(listOf(file), DEFAULT_PAGEABLE, 1)
 
-        val result = mockMvc.perform(get("/tags/{id}/files", 0))
+        val result = mockMvc.perform(post("/tags/filesall")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""{"fileTagIds": [0]}"""))
             .andExpect(status().isOk)
             .andReturn()
 
@@ -221,6 +226,62 @@ class TagsControllerTest(
         val expected = SimplePage(files.map { mapper.toDtoWithHost(it, ipAddress) }, 1, 1)
         assertThat(resultResponse).isEqualTo(expected)
     }
+
+    //endregion
+
+    //region Folder tag tests
+
+    @Test
+    fun `Given no folder tags, when add endpoint called, then create new tag`(){
+
+        val tag = TagFolder("my_folder_tag")
+        every { folderTagsRepository.save(any()) } returns tag
+
+        val result = mockMvc.perform(post("/tags/folders/add").param("name", "Cats"))
+            .andExpect(status().isOk)
+            .andReturn()
+
+        val resultResponse = objectMapper.readValue(result.response.contentAsString, TagEntity::class.java)
+        assertTagEqual(tag, resultResponse)
+    }
+
+    @Test
+    fun `Given valid folder id, when add tag endpoint called, then tag added`(){
+
+        every { mediaFolderRepository.findById(0) } returns Optional.of(MediaFolder("my_folder"))
+        val savedTag = TagFolder("my_tag")
+        every { folderTagsRepository.findByName("my_tag") } returns savedTag
+
+        every { folderTagsRepository.save(savedTag) } returns savedTag
+
+        val result = mockMvc.perform(post("/folders/{id}/tags", 0)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""{"name": "my_tag"}"""))
+            .andExpect(status().isOk)
+            .andReturn()
+
+        val resultResponse = objectMapper.readValue(result.response.contentAsString, TagEntity::class.java)
+        assertTagEqual(savedTag, resultResponse)
+    }
+
+    @Test
+    fun `Given valid tag id, when get folders by tags endpoint called, then files returned`(){
+        every { tagsRepository.existsById(0) } returns true
+        val folder = MediaFolder("my_folder")
+        every { mediaFolderRepository.findFoldersByTagsId(0, DEFAULT_PAGEABLE) } returns PageImpl(listOf(folder), DEFAULT_PAGEABLE, 1)
+
+        val result = mockMvc.perform(post("/tags/folders")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""[0]"""))
+            .andExpect(status().isOk)
+            .andReturn()
+
+        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<SimplePage<Folder>>() {})
+        val expected = SimplePage(listOf(folder.toDto()), 1, 1)
+        assertThat(resultResponse).isEqualTo(expected)
+    }
+
+    //endregion
 
     private fun assertTagEqual(expected: TagEntity, actual: TagEntity){
         assertThat(actual.id).isEqualTo(expected.id)

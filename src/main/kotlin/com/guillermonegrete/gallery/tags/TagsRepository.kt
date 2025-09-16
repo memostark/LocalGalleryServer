@@ -8,12 +8,7 @@ import com.guillermonegrete.gallery.tags.data.TagFolderDto
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 
-interface TagsRepository: JpaRepository<TagEntity, Long>{
-
-    fun findByName(name: String): TagEntity?
-
-    fun findByIdIn(ids: List<Long>): List<TagEntity>
-}
+interface TagsRepository: JpaRepository<TagEntity, Long>
 
 interface FileTagsRepository: JpaRepository<TagFile, Long>{
 
