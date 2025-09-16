@@ -84,7 +84,7 @@ class TagsController(
 
             val completeTag = fileTagsRepo.findByName(tag.name) ?: TagFile(tag.name, id = tag.id)
             file.addTag(completeTag)
-            tagRepo.save(completeTag)
+            fileTagsRepo.save(completeTag)
         }.orElseThrow { Exception("File with id $id not found") }
         return ResponseEntity(newTag, HttpStatus.OK)
     }

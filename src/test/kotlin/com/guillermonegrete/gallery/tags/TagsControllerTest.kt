@@ -13,6 +13,9 @@ import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.data.TagDto
 import com.guillermonegrete.gallery.tags.data.TagEntity
+import com.guillermonegrete.gallery.tags.data.TagFile
+import com.guillermonegrete.gallery.tags.data.TagFileDto
+import com.guillermonegrete.gallery.tags.data.TagFolderDto
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.assertj.core.api.Assertions.assertThat
@@ -45,6 +48,8 @@ class TagsControllerTest(
     private lateinit var commandLineRunner: CommandLineRunner
 
     @MockkBean private lateinit var tagsRepository: TagsRepository
+    @MockkBean private lateinit var fileTagsRepository: FileTagsRepository
+    @MockkBean private lateinit var folderTagsRepository: FolderTagsRepository
     @MockkBean private lateinit var mediaFolderRepository: MediaFolderRepository
     @MockkBean private lateinit var mediaFileRepository: MediaFileRepository
     @MockkBean private lateinit var networkConfig: NetworkConfig
@@ -59,7 +64,7 @@ class TagsControllerTest(
     @Test
     fun `Given tags, when get all endpoint called, then return them`(){
 
-        val tags = listOf(TagEntity("my_tag"))
+        val tags = listOf(TagFile("my_tag"))
         every { tagsRepository.findAll() } returns tags
 
         val result = mockMvc.perform(get("/tags"))
@@ -78,8 +83,8 @@ class TagsControllerTest(
     @Test
     fun `Given no tags, when add endpoint called, then create new tag`(){
 
-        val tag = TagEntity("my_tag")
-        every { tagsRepository.save(any()) } returns tag
+        val tag = TagFile("my_tag")
+        every { fileTagsRepository.save(any()) } returns tag
 
         val result = mockMvc.perform(post("/tags/add").param("name", "Cats"))
             .andExpect(status().isOk)
@@ -93,10 +98,10 @@ class TagsControllerTest(
     fun `Given valid file id, when add tag endpoint called, then add tag`(){
 
         every { mediaFileRepository.findById(0) } returns Optional.of(ImageEntity("saved_image.jpg"))
-        val savedTag = TagEntity("my_tag")
-        every { tagsRepository.findByName("my_tag") } returns savedTag
+        val savedTag = TagFile("my_tag")
+        every { fileTagsRepository.findByName("my_tag") } returns savedTag
 
-        every { tagsRepository.save(savedTag) } returns savedTag
+        every { fileTagsRepository.save(savedTag) } returns savedTag
 
         val result = mockMvc.perform(post("/files/{id}/tags", 0)
             .contentType(MediaType.APPLICATION_JSON)
@@ -116,11 +121,11 @@ class TagsControllerTest(
         every { mediaFileRepository.findById(fileId) } returns Optional.of(savedFile)
 
         val files = listOf(
-            TagEntity("tag_1", date),
-            TagEntity("tag_2", date),
-            TagEntity("tag_3", date),
+            TagFile("tag_1", date),
+            TagFile("tag_2", date),
+            TagFile("tag_3", date),
         )
-        every { tagsRepository.findByIdIn(listOf(2,3,4)) } returns files
+        every { fileTagsRepository.findByIdIn(listOf(2,3,4)) } returns files
 
         every { mediaFileRepository.save(any()) } returns savedFile
 
@@ -138,8 +143,8 @@ class TagsControllerTest(
     fun `Given valid tag id, when add tag to files endpoint, then return updated files`(){
         val tagId = 1L
         val date = Instant.now()
-        val savedTag = TagEntity("my_tag", date)
-        every { tagsRepository.findById(tagId) } returns Optional.of(savedTag)
+        val savedTag = TagFile("my_tag", date)
+        every { fileTagsRepository.findById(tagId) } returns Optional.of(savedTag)
 
         val files = listOf(
             MediaFile("file_1", creationDate = date, lastModified = date),
@@ -182,18 +187,21 @@ class TagsControllerTest(
     @Test
     fun `Given valid folder id, when get tags of folder endpoint called, then tags returned`(){
         val folderId = 0L
-        val tag = TagDto("new", 12)
+        val tag = TagFileDto("new", 12)
         val tags = setOf(tag)
-        every { tagsRepository.getTagsWithFilesByFolder(folderId) } returns tags
+        every { fileTagsRepository.getTagsWithFilesByFolder(folderId) } returns tags
+        val folderTag = TagFolderDto("new_folder", 5)
+        every { folderTagsRepository.getFolderTags(folderId) } returns setOf(folderTag)
 
         val result = mockMvc.perform(get("/folders/{id}/tags", 0))
             .andExpect(status().isOk)
             .andReturn()
 
         val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<List<TagDto>>() {})
-        assertThat(resultResponse).hasSize(1)
+        assertThat(resultResponse).hasSize(2)
         val tagResult = resultResponse.first()
         assertThat(tagResult).isEqualTo(tag)
+        assertThat(resultResponse[1]).isEqualTo(folderTag)
     }
 
     @Test
