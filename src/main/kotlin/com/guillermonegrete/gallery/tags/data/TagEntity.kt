@@ -9,6 +9,8 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Inheritance
 import jakarta.persistence.InheritanceType
+import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -19,8 +21,11 @@ import java.time.temporal.ChronoUnit
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name="tag_type",
     discriminatorType = DiscriminatorType.INTEGER)
+@Table(uniqueConstraints=[
+    UniqueConstraint(columnNames = ["name", "tag_type"])
+])
 open class TagEntity(
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     open val name: String = "",
     @Column(name = "creation_date", nullable = false)
     open val creationDate: Instant = Instant.now().truncatedTo(ChronoUnit.SECONDS), // by default the db saves in seconds, truncate to avoid having different milliseconds

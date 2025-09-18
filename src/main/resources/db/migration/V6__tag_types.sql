@@ -2,6 +2,9 @@
 ALTER TABLE tag_entity ADD tag_type integer not null;
 UPDATE tag_entity SET tag_type = 1;
 
+ALTER TABLE tag_entity DROP CONSTRAINT uc_tagentity_name;
+ALTER TABLE tag_entity ADD CONSTRAINT uc_tagentity_name_tagtype UNIQUE (name, tag_type);
+
 -- Create join
 CREATE TABLE `folder_tags` (
   `tag_id` bigint NOT NULL,
