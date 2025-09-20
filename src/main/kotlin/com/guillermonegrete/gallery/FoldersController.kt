@@ -7,6 +7,7 @@ import com.guillermonegrete.gallery.data.PagedFolderResponse
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
+import com.guillermonegrete.gallery.data.toDto
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import org.springframework.beans.factory.annotation.Autowired
@@ -91,7 +92,7 @@ class FoldersController(
 
         folder.coverFile = file
 
-        val savedFolder = mediaFolderRepo.save(folder).toDto(file.filename)
+        val savedFolder = mediaFolderRepo.save(folder).toDto(file.filename, ipAddress)
         return ResponseEntity(savedFolder, HttpStatus.OK)
     }
 
@@ -107,7 +108,7 @@ class FoldersController(
             val result = if(sort.isDescending) mediaFolderRepo.findAllMediaFolderByFileCountDesc(newPageable) else mediaFolderRepo.findAllMediaFolderByFileCountAsc(newPageable)
             result.map { Folder(it.name, it.coverUrl ?: "", it.count, it.id) }
         } else {
-            mediaFolderRepo.findAll(pageable).map { Folder(it.name, it.getCover(), it.files.size, it.id) }
+            mediaFolderRepo.findAll(pageable).map { it.toDto() }
         }
     }
 
@@ -122,13 +123,8 @@ class FoldersController(
                 mediaFolderRepo.findByNameContainingAndFileCountDesc(query, newPageable) else mediaFolderRepo.findByNameContainingAndFileCountAsc(query, newPageable)
             result.map { Folder(it.name, it.coverUrl ?: "", it.count, it.id) }
         } else {
-            mediaFolderRepo.findByNameContaining(query, pageable).map { Folder(it.name, it.getCover(), it.files.size, it.id)  }
+            mediaFolderRepo.findByNameContaining(query, pageable).map { it.toDto() }
         }
-    }
-
-    fun MediaFolder.toDto(fileName: String): Folder {
-        val coverUrl = "http://$ipAddress/images/$name/$fileName"
-        return Folder(name, coverUrl, files.size, id)
     }
 
     fun getFolderName(): String {

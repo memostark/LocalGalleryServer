@@ -1,7 +1,7 @@
 package com.guillermonegrete.gallery.data
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import com.guillermonegrete.gallery.tags.data.TagEntity
+import com.guillermonegrete.gallery.tags.data.TagFile
 import jakarta.persistence.Column
 import jakarta.persistence.DiscriminatorColumn
 import jakarta.persistence.DiscriminatorType
@@ -37,8 +37,8 @@ open class MediaFile(
     open val creationDate: Instant = Instant.now(),
     @Column(name = "last_modified", nullable = false)
     open val lastModified: Instant = Instant.now(),
-    @ManyToMany(targetEntity = TagEntity::class, mappedBy = "files")
-    open val tags: MutableSet<TagEntity> = mutableSetOf(),
+    @ManyToMany(targetEntity = TagFile::class, mappedBy = "files")
+    open val tags: MutableSet<TagFile> = mutableSetOf(),
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "folder_id")
     @JsonIgnoreProperties("files")
@@ -53,7 +53,7 @@ open class MediaFile(
     /**
      * Returns true if the tag wasn't already applied, false otherwise.
      */
-    fun addTag(tag: TagEntity): Boolean {
+    fun addTag(tag: TagFile): Boolean {
         tag.files.add(this)
         return tags.add(tag)
     }

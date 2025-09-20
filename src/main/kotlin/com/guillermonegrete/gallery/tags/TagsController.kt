@@ -1,17 +1,23 @@
 package com.guillermonegrete.gallery.tags
 
 import com.guillermonegrete.gallery.config.NetworkConfig
+import com.guillermonegrete.gallery.data.Folder
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
+import com.guillermonegrete.gallery.data.toDto
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.data.TagDto
 import com.guillermonegrete.gallery.tags.data.TagEntity
+import com.guillermonegrete.gallery.tags.data.TagFile
+import com.guillermonegrete.gallery.tags.data.TagFileDto
+import com.guillermonegrete.gallery.tags.data.TagFolder
 import com.guillermonegrete.gallery.tags.data.TagRequest
 import com.guillermonegrete.gallery.tags.data.toDto
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
@@ -23,6 +29,8 @@ import java.net.InetAddress
 @RestController
 class TagsController(
     private val tagRepo: TagsRepository,
+    private val fileTagsRepo: FileTagsRepository,
+    private val folderTagsRepo: FolderTagsRepository,
     private val filesRepo: MediaFileRepository,
     private val folderRepo: MediaFolderRepository,
     private val fileMapper: FileMapper,
@@ -35,7 +43,13 @@ class TagsController(
     @GetMapping("/tags")
     fun getAllTags(): ResponseEntity<List<TagDto>> {
         val tags = tagRepo.findAll()
-        val tagsDto = tags.map { it.toDto() }
+        val tagsDto = tags.map {
+            when(it) {
+                is TagFile -> it.toDto()
+                is TagFolder -> it.toDto()
+                else -> TagFileDto("", 0)
+            }
+        }
         return if (tagsDto.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tagsDto, HttpStatus.OK)
     }
 
@@ -44,10 +58,11 @@ class TagsController(
         if (name.isBlank()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tag can't be blank")
 
         return try {
-            val tag = tagRepo.save(TagEntity(name))
+            val tag = fileTagsRepo.save(TagFile(name))
             ResponseEntity(tag, HttpStatus.OK)
         } catch (ex: DataIntegrityViolationException){
             println("Duplicate entry for $name")
+            ex.printStackTrace()
             ResponseEntity("Duplicate tag", HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
@@ -60,16 +75,16 @@ class TagsController(
             val tagId = tag.id
 
             if(tagId != 0L){
-                val savedTag = tagRepo.findById(tagId)
+                val savedTag = fileTagsRepo.findById(tagId)
                     .orElseThrow { Exception("Tag with id $tagId not found") }
                 file.addTag(savedTag)
                 filesRepo.save(file)
                 return@map savedTag
             }
 
-            val completeTag = tagRepo.findByName(tag.name) ?: TagEntity(tag.name, id = tag.id)
+            val completeTag = fileTagsRepo.findByName(tag.name) ?: TagFile(tag.name, id = tag.id)
             file.addTag(completeTag)
-            tagRepo.save(completeTag)
+            fileTagsRepo.save(completeTag)
         }.orElseThrow { Exception("File with id $id not found") }
         return ResponseEntity(newTag, HttpStatus.OK)
     }
@@ -86,13 +101,33 @@ class TagsController(
     }
 
     @PostMapping("tags/files")
-    fun getFilesByTags(@RequestBody rawIds: List<Long>, pageable: Pageable): ResponseEntity<SimplePage<FileDTO>>{
+    fun getFilesByFileTags(@RequestBody rawIds: List<Long>, pageable: Pageable): ResponseEntity<SimplePage<FileDTO>>{
         if(rawIds.isEmpty()) throw Exception("The tag list is empty")
 
         val ids = rawIds.filter { tagRepo.existsById(it) }
         if (ids.isEmpty()) return ResponseEntity(SimplePage(), HttpStatus.OK)
 
-        val filesPage = if (ids.size == 1) filesRepo.findFilesByTagsId(ids.first(), pageable) else filesRepo.findFilesByTagsIds(ids, pageable)
+        val filesPage = if (ids.size == 1) filesRepo.findFilesByTagsId(ids.first(), pageable) else filesRepo.findFilesByFileTagsIds(ids, pageable)
+
+        val finalFiles = filesPage.content.map { fileMapper.toSingleDto(it, ipAddress) }
+
+        val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
+        return ResponseEntity(page, HttpStatus.OK)
+    }
+
+    @PostMapping("tags/filesall")
+    fun getFilesByTags(@RequestBody ids: FilterTagsRequest, pageable: Pageable): ResponseEntity<SimplePage<FileDTO>>{
+        val fileIds = ids.fileTagIds.filter { fileTagsRepo.existsById(it) }
+        val folderIds = ids.folderTagIds.filter { folderTagsRepo.existsById(it) }
+
+        val filesPage = when {
+            fileIds.isNotEmpty() -> {
+                if (folderIds.isNotEmpty()) filesRepo.findFilesByTagsIds(fileIds, folderIds, pageable)
+                else filesRepo.findFilesByFileTagsIds(fileIds, pageable)
+            }
+            else -> if (folderIds.isNotEmpty()) filesRepo.findFilesByFolderTagsIds(folderIds, pageable)
+            else return ResponseEntity(SimplePage(), HttpStatus.OK)
+        }
 
         val finalFiles = filesPage.content.map { fileMapper.toSingleDto(it, ipAddress) }
 
@@ -102,7 +137,7 @@ class TagsController(
 
     @PostMapping("tags/{id}/files")
     fun addTagToFiles(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<FileDTO>> {
-        val tag = tagRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
+        val tag = fileTagsRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
 
         val files = filesRepo.findByIdIn(fileIds)
 
@@ -114,19 +149,158 @@ class TagsController(
 
     @PostMapping("files/{id}/multitag")
     fun addTagsToFile(@PathVariable id: Long, @RequestBody tagIds: List<Long>): ResponseEntity<List<TagEntity>> {
-        val file = filesRepo.findByIdOrNull(id) ?: throw RuntimeException("File id $id not found")
+        val file = filesRepo.findByIdOrNull(id)  ?: throw RuntimeException("File id $id not found")
 
-        val tags = tagRepo.findByIdIn(tagIds)
+        val tags = fileTagsRepo.findByIdIn(tagIds)
 
         tags.forEach { file.addTag(it) }
         filesRepo.save(file)
         return ResponseEntity(tags, HttpStatus.OK)
     }
 
+    //region Folders
+
+    @GetMapping("/tags/folders")
+    fun getAllFolderTags(): ResponseEntity<Set<TagDto>> {
+        val tags = folderTagsRepo.getFolderTags()
+        return if (tags.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tags, HttpStatus.OK)
+    }
+
+    @GetMapping("/tags/folders/{id}")
+    fun getFolderTags(@PathVariable id: Long): ResponseEntity<Set<TagDto>> {
+        val folderTags = folderTagsRepo.getFolderTags(id)
+        return ResponseEntity(folderTags, HttpStatus.OK)
+    }
+
+    @PostMapping("/tags/folders/add")
+    fun createFolderTag(@RequestParam name: String): ResponseEntity<Any> {
+        if (name.isBlank()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tag can't be blank")
+
+        return try {
+            val tag = folderTagsRepo.save(TagFolder(name))
+            ResponseEntity(tag, HttpStatus.OK)
+        } catch (ex: DataIntegrityViolationException){
+            println("Duplicate entry for $name")
+            ex.printStackTrace()
+            ResponseEntity("Duplicate tag", HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+    }
+
+    @PostMapping("folders/{id}/tags")
+    fun addFolderTag(@PathVariable id: Long, @RequestBody tag: TagRequest): ResponseEntity<TagEntity> {
+        if (tag.name.isBlank()) throw Exception("Tag can't be blank")
+
+        val folder = folderRepo.findByIdOrNull(id) ?: throw Exception("Folder with id $id not found")
+        val tagId = tag.id
+
+        if(tagId != 0L){
+            val savedTag = folderTagsRepo.findById(tagId)
+                .orElseThrow { Exception("Folder tag with id $tagId not found") }
+            folder.addTag(savedTag)
+            folderRepo.save(folder)
+            return ResponseEntity(savedTag, HttpStatus.OK)
+        }
+
+        val completeTag = folderTagsRepo.findByName(tag.name) ?: TagFolder(tag.name, id = tag.id)
+        folder.addTag(completeTag)
+        folderTagsRepo.save(completeTag)
+        return ResponseEntity(completeTag, HttpStatus.OK)
+    }
+
+    @PostMapping("tags/folders")
+    fun getFoldersByTags(@RequestBody ids: List<Long>, @RequestParam(required = false) query: String?, pageable: Pageable): ResponseEntity<SimplePage<Folder>>{
+        if(ids.isEmpty()) throw Exception("The tag list is empty")
+
+        val finalIds = ids.filter { tagRepo.existsById(it) }
+        if (finalIds.isEmpty()) return ResponseEntity(SimplePage(), HttpStatus.OK)
+
+        val sort = pageable.sort.firstOrNull()
+        val foldersPage = if (query != null) {
+            if(sort?.property == "count") {
+                // Sorting by child count is a special case because it's not an entity column
+                // Created pageable without the "count" sort field, otherwise it will produce an error
+                val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
+                val result = if(sort.isDescending)
+                    folderRepo.findFoldersByFileCountAndTagsAndContainingDesc(finalIds, finalIds.size, query, newPageable)
+                else
+                    folderRepo.findFoldersByFileCountAndTagsAndContainingAsc(finalIds, finalIds.size, query, newPageable)
+                result.map { Folder(it.name, it.coverUrl ?: "", it.count, it.id) }
+            } else {
+                val folders = folderRepo.findFoldersByTagsIdsAndContaining(finalIds, finalIds.size, query, pageable)
+                folders.map { it.toDto() }
+            }
+        } else {
+            if (sort?.property == "count") {
+                // Sorting by child count is a special case because it's not an entity column
+                // Created pageable without the "count" sort field, otherwise it will produce an error
+                val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
+                val result = if (sort.isDescending)
+                    folderRepo.findFoldersByFileCountAndTagsDesc(finalIds, finalIds.size, newPageable)
+                else
+                    folderRepo.findFoldersByFileCountAndTagsAsc(finalIds, finalIds.size, newPageable)
+                result.map { Folder(it.name, it.coverUrl ?: "", it.count, it.id) }
+            } else {
+                val folders = if (finalIds.size == 1)
+                    folderRepo.findFoldersByTagsId(finalIds.first(), pageable) else folderRepo.findFoldersByTagIds(
+                    finalIds,
+                    pageable
+                )
+                folders.map { it.toDto() }
+            }
+        }
+
+        val page  = SimplePage(foldersPage.content, foldersPage.totalPages, foldersPage.totalElements.toInt())
+        return ResponseEntity(page, HttpStatus.OK)
+    }
+
+    @PostMapping("tags/{id}/folders")
+    fun addTagToFolders(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<Folder>> {
+        val tag = folderTagsRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
+
+        val files = folderRepo.findByIdIn(fileIds)
+
+        val updatedFiles = files.filter { it.addTag(tag) }
+        folderRepo.saveAll(files)
+        val fileDTOs = updatedFiles.map { it.toDto() }
+        return ResponseEntity(fileDTOs, HttpStatus.OK)
+    }
+
+    @PostMapping("folders/{id}/multitag")
+    fun addTagsToFolder(@PathVariable id: Long, @RequestBody tagIds: List<Long>): ResponseEntity<List<TagEntity>> {
+        val file = folderRepo.findByIdOrNull(id)  ?: throw RuntimeException("File id $id not found")
+
+        val tags = folderTagsRepo.findByIdIn(tagIds)
+
+        tags.forEach { file.addTag(it) }
+        folderRepo.save(file)
+        return ResponseEntity(tags, HttpStatus.OK)
+    }
+
+    @DeleteMapping("tags/folders/{id}")
+    fun deleteFolderTag(@PathVariable("id") id: Long): ResponseEntity<HttpStatus> {
+        folderTagsRepo.deleteById(id)
+        return ResponseEntity(HttpStatus.NO_CONTENT)
+    }
+
+    @DeleteMapping("/folders/{folderId}/tags/{tagId}")
+    fun deleteTagFromFolder(
+        @PathVariable folderId: Long,
+        @PathVariable tagId: Long
+    ): ResponseEntity<HttpStatus> {
+        val folder = folderRepo.findById(folderId)
+            .orElseThrow { RuntimeException("Folder not found with id = $folderId") }
+        folder.removeTag(tagId)
+        folderRepo.save(folder)
+        return ResponseEntity(HttpStatus.NO_CONTENT)
+    }
+
+    //endregion
+
     @GetMapping("folders/{id}/tags")
     fun getTagsByFolder(@PathVariable id: Long): ResponseEntity<Set<TagDto>> {
-        val tagsDto = tagRepo.getTagsWithFilesByFolder(id)
-        return ResponseEntity(tagsDto, HttpStatus.OK)
+        val fileTags = fileTagsRepo.getTagsWithFilesByFolder(id)
+        val folderTags = folderTagsRepo.getFolderTags(id)
+        return ResponseEntity(fileTags + folderTags, HttpStatus.OK)
     }
 
     @GetMapping("folders/{folderId}/tags/{tagId}")
@@ -158,12 +332,12 @@ class TagsController(
     }
 
     @DeleteMapping("/files/{fileId}/tags/{tagId}")
-    fun deleteTagFromTutorial(
+    fun deleteTagFromFiles(
         @PathVariable fileId: Long,
         @PathVariable tagId: Long
     ): ResponseEntity<HttpStatus> {
         val file = filesRepo.findById(fileId)
-            .orElseThrow { RuntimeException("Not found Tutorial with id = $fileId") }
+            .orElseThrow { RuntimeException("File not found with id = $fileId") }
         file.removeTag(tagId)
         filesRepo.save(file)
         return ResponseEntity(HttpStatus.NO_CONTENT)
@@ -179,4 +353,9 @@ class TagsController(
         val inetAddress = InetAddress.getLocalHost()
         return inetAddress.hostAddress
     }
+
+    data class FilterTagsRequest(
+        val fileTagIds: List<Long> = emptyList(),
+        val folderTagIds: List<Long> = emptyList()
+    )
 }
