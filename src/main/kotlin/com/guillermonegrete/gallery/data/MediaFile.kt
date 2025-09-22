@@ -43,7 +43,7 @@ open class MediaFile(
     @JoinColumn(name = "folder_id")
     @JsonIgnoreProperties("files")
     open var folder: MediaFolder = MediaFolder(),
-    @Id @GeneratedValue(strategy = GenerationType.AUTO)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     open val id: Long = 0
 ){
     override fun toString(): String {

@@ -1,6 +1,5 @@
 package com.guillermonegrete.gallery.data
 
-import com.guillermonegrete.gallery.tags.data.TagFile
 import com.guillermonegrete.gallery.tags.data.TagFolder
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
@@ -25,7 +24,7 @@ data class MediaFolder(
     var coverFile: MediaFile? = null,
     @ManyToMany(targetEntity = TagFolder::class, mappedBy = "folders")
     val tags: MutableSet<TagFolder> = mutableSetOf(),
-    @Id @GeneratedValue(strategy = GenerationType.AUTO)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 ) {
     override fun toString(): String {
