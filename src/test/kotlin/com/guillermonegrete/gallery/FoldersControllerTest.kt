@@ -9,8 +9,11 @@ import com.guillermonegrete.gallery.data.files.dto.ImageFileDTO
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.services.FolderFetchingService
+import com.guillermonegrete.gallery.tags.TagsControllerTest.Companion.DEFAULT_PAGEABLE
+import com.guillermonegrete.gallery.tags.TagsRepository
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
+import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.collection.IsCollectionWithSize.hasSize
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -23,9 +26,11 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import org.springframework.http.MediaType
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -36,9 +41,9 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
     "base.path=dummy"
 ])
 class FoldersControllerTest(
-    @Autowired val mockMvc: MockMvc,
-    @Autowired val mapper: FileMapper,
-    @Autowired val objectMapper: ObjectMapper
+    @param:Autowired val mockMvc: MockMvc,
+    @param:Autowired val mapper: FileMapper,
+    @param:Autowired val objectMapper: ObjectMapper
 ) {
 
     // For the bean in the application class, don't want to run it in these tests
@@ -48,6 +53,7 @@ class FoldersControllerTest(
 
     @MockkBean private lateinit var mediaFolderRepository: MediaFolderRepository
     @MockkBean private lateinit var mediaFileRepository: MediaFileRepository
+    @MockkBean private lateinit var tagsRepository: TagsRepository
     @MockkBean private lateinit var networkConfig: NetworkConfig
 
     @Value("\${base.path}")
@@ -115,6 +121,23 @@ class FoldersControllerTest(
 
         val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<SimplePage<ImageFileDTO>>() {})
         assertEquals(expected, resultResponse)
+    }
+
+    @Test
+    fun `Given valid tag id, when get folders by tags endpoint called, then files returned`(){
+        every { tagsRepository.existsById(0) } returns true
+        val folder = MediaFolder("my_folder")
+        every { mediaFolderRepository.findFoldersByTagsId(0, DEFAULT_PAGEABLE) } returns PageImpl(listOf(folder), DEFAULT_PAGEABLE, 1)
+
+        val result = mockMvc.perform(post("/folders")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""[0]"""))
+            .andExpect(status().isOk)
+            .andReturn()
+
+        val resultResponse = objectMapper.readValue(result.response.contentAsString, PagedFolderResponse::class.java)
+        val expected = PagedFolderResponse(path, SimplePage(listOf(folder.toDto(ipAddress)), 1, 1))
+        assertThat(resultResponse).isEqualTo(expected)
     }
 
     @TestConfiguration
