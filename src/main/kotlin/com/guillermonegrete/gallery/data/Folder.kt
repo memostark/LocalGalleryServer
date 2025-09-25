@@ -1,5 +1,7 @@
 package com.guillermonegrete.gallery.data
 
+import com.guillermonegrete.gallery.repository.FolderDto
+
 data class Folder(
         val name:String,
         val coverUrl: String,
@@ -17,4 +19,6 @@ fun MediaFolder.toDto(fileName: String, ipAddress: String): Folder {
     return Folder(name, coverUrl, files.size, id)
 }
 
-fun MediaFolder.toDto() = Folder(name, coverFile?.filename ?: files.firstOrNull()?.filename ?: "", files.size, id)
+fun MediaFolder.toDto(ipAddress: String) = Folder(name, "http://$ipAddress/images/$name/${coverFile?.filename ?: files.firstOrNull()?.filename}", files.size, id)
+
+fun FolderDto.toFolder(ipAddress: String) = Folder(name, "http://$ipAddress/images/$name/$coverUrl", count, id)

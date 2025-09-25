@@ -17,7 +17,6 @@ import com.guillermonegrete.gallery.tags.data.TagRequest
 import com.guillermonegrete.gallery.tags.data.toDto
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
-import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
@@ -207,52 +206,6 @@ class TagsController(
         return ResponseEntity(completeTag, HttpStatus.OK)
     }
 
-    @PostMapping("tags/folders")
-    fun getFoldersByTags(@RequestBody ids: List<Long>, @RequestParam(required = false) query: String?, pageable: Pageable): ResponseEntity<SimplePage<Folder>>{
-        if(ids.isEmpty()) throw Exception("The tag list is empty")
-
-        val finalIds = ids.filter { tagRepo.existsById(it) }
-        if (finalIds.isEmpty()) return ResponseEntity(SimplePage(), HttpStatus.OK)
-
-        val sort = pageable.sort.firstOrNull()
-        val foldersPage = if (query != null) {
-            if(sort?.property == "count") {
-                // Sorting by child count is a special case because it's not an entity column
-                // Created pageable without the "count" sort field, otherwise it will produce an error
-                val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
-                val result = if(sort.isDescending)
-                    folderRepo.findFoldersByFileCountAndTagsAndContainingDesc(finalIds, finalIds.size, query, newPageable)
-                else
-                    folderRepo.findFoldersByFileCountAndTagsAndContainingAsc(finalIds, finalIds.size, query, newPageable)
-                result.map { Folder(it.name, it.coverUrl ?: "", it.count, it.id) }
-            } else {
-                val folders = folderRepo.findFoldersByTagsIdsAndContaining(finalIds, finalIds.size, query, pageable)
-                folders.map { it.toDto() }
-            }
-        } else {
-            if (sort?.property == "count") {
-                // Sorting by child count is a special case because it's not an entity column
-                // Created pageable without the "count" sort field, otherwise it will produce an error
-                val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
-                val result = if (sort.isDescending)
-                    folderRepo.findFoldersByFileCountAndTagsDesc(finalIds, finalIds.size, newPageable)
-                else
-                    folderRepo.findFoldersByFileCountAndTagsAsc(finalIds, finalIds.size, newPageable)
-                result.map { Folder(it.name, it.coverUrl ?: "", it.count, it.id) }
-            } else {
-                val folders = if (finalIds.size == 1)
-                    folderRepo.findFoldersByTagsId(finalIds.first(), pageable) else folderRepo.findFoldersByTagIds(
-                    finalIds,
-                    pageable
-                )
-                folders.map { it.toDto() }
-            }
-        }
-
-        val page  = SimplePage(foldersPage.content, foldersPage.totalPages, foldersPage.totalElements.toInt())
-        return ResponseEntity(page, HttpStatus.OK)
-    }
-
     @PostMapping("tags/{id}/folders")
     fun addTagToFolders(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<Folder>> {
         val tag = folderTagsRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
@@ -261,7 +214,7 @@ class TagsController(
 
         val updatedFiles = files.filter { it.addTag(tag) }
         folderRepo.saveAll(files)
-        val fileDTOs = updatedFiles.map { it.toDto() }
+        val fileDTOs = updatedFiles.map { it.toDto(ipAddress) }
         return ResponseEntity(fileDTOs, HttpStatus.OK)
     }
 
