@@ -3,14 +3,12 @@ package com.guillermonegrete.gallery.tags
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.guillermonegrete.gallery.config.NetworkConfig
-import com.guillermonegrete.gallery.data.Folder
 import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.ImageEntity
 import com.guillermonegrete.gallery.data.files.dto.ImageFileDTO
-import com.guillermonegrete.gallery.data.toDto
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.data.TagDto
@@ -42,9 +40,9 @@ import java.util.*
 
 @WebMvcTest
 class TagsControllerTest(
-    @Autowired val mockMvc: MockMvc,
-    @Autowired val mapper: FileMapper,
-    @Autowired val objectMapper: ObjectMapper,
+    @param:Autowired val mockMvc: MockMvc,
+    @param:Autowired val mapper: FileMapper,
+    @param:Autowired val objectMapper: ObjectMapper,
 ) {
 
     @MockkBean(relaxed = true)
@@ -262,23 +260,6 @@ class TagsControllerTest(
 
         val resultResponse = objectMapper.readValue(result.response.contentAsString, TagEntity::class.java)
         assertTagEqual(savedTag, resultResponse)
-    }
-
-    @Test
-    fun `Given valid tag id, when get folders by tags endpoint called, then files returned`(){
-        every { tagsRepository.existsById(0) } returns true
-        val folder = MediaFolder("my_folder")
-        every { mediaFolderRepository.findFoldersByTagsId(0, DEFAULT_PAGEABLE) } returns PageImpl(listOf(folder), DEFAULT_PAGEABLE, 1)
-
-        val result = mockMvc.perform(post("/tags/folders")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("""[0]"""))
-            .andExpect(status().isOk)
-            .andReturn()
-
-        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<SimplePage<Folder>>() {})
-        val expected = SimplePage(listOf(folder.toDto()), 1, 1)
-        assertThat(resultResponse).isEqualTo(expected)
     }
 
     //endregion

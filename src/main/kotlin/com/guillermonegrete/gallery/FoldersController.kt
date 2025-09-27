@@ -8,8 +8,10 @@ import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
 import com.guillermonegrete.gallery.data.toDto
+import com.guillermonegrete.gallery.data.toFolder
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
+import com.guillermonegrete.gallery.tags.TagsRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
@@ -26,6 +28,7 @@ import java.io.File
 class FoldersController(
     val mediaFolderRepo: MediaFolderRepository,
     val mediaFilesRepo: MediaFileRepository,
+    val tagRepo: TagsRepository,
     val fileMapper: FileMapper
 ){
 
@@ -46,7 +49,7 @@ class FoldersController(
             folder.copy(coverUrl = coverUrl)
         }
 
-        return PagedFolderResponse(getFolderName(), SimplePage(finalFolders, folders.totalPages, folders.totalElements.toInt()))
+        return PagedFolderResponse(getFolderName(), SimplePage(folders.content, folders.totalPages, folders.totalElements.toInt()))
     }
 
     @GetMapping("/folders/{subFolder}")
@@ -96,6 +99,51 @@ class FoldersController(
         return ResponseEntity(savedFolder, HttpStatus.OK)
     }
 
+    @PostMapping("/folders")
+    fun getFoldersByTags(@RequestBody ids: List<Long>, @RequestParam(required = false) query: String?, pageable: Pageable): PagedFolderResponse{
+        if(ids.isEmpty()) throw Exception("The tag list is empty")
+
+        val finalIds = ids.filter { tagRepo.existsById(it) }
+        if (finalIds.isEmpty()) return PagedFolderResponse(getFolderName(), SimplePage())
+
+        val sort = pageable.sort.firstOrNull()
+        val foldersPage = if (query != null) {
+            if(sort?.property == "count") {
+                // Sorting by child count is a special case because it's not an entity column
+                // Created pageable without the "count" sort field, otherwise it will produce an error
+                val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
+                val result = if(sort.isDescending)
+                    mediaFolderRepo.findFoldersByFileCountAndTagsAndContainingDesc(finalIds, finalIds.size, query, newPageable)
+                else
+                    mediaFolderRepo.findFoldersByFileCountAndTagsAndContainingAsc(finalIds, finalIds.size, query, newPageable)
+                result.map { it.toFolder(ipAddress) }
+            } else {
+                val folders = mediaFolderRepo.findFoldersByTagsIdsAndContaining(finalIds, finalIds.size, query, pageable)
+                folders.map { it.toDto(ipAddress) }
+            }
+        } else {
+            if (sort?.property == "count") {
+                // Sorting by child count is a special case because it's not an entity column
+                // Created pageable without the "count" sort field, otherwise it will produce an error
+                val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
+                val result = if (sort.isDescending)
+                    mediaFolderRepo.findFoldersByFileCountAndTagsDesc(finalIds, finalIds.size, newPageable)
+                else
+                    mediaFolderRepo.findFoldersByFileCountAndTagsAsc(finalIds, finalIds.size, newPageable)
+                result.map { it.toFolder(ipAddress) }
+            } else {
+                val folders = if (finalIds.size == 1)
+                    mediaFolderRepo.findFoldersByTagsId(finalIds.first(), pageable)
+                else
+                    mediaFolderRepo.findFoldersByTagIds(finalIds, pageable)
+                folders.map { it.toDto(ipAddress) }
+            }
+        }
+
+        val page  = SimplePage(foldersPage.content, foldersPage.totalPages, foldersPage.totalElements.toInt())
+        return PagedFolderResponse(getFolderName(), page)
+    }
+
     /**
      * Returns the page of folders by the given pageable.
      */
@@ -106,9 +154,9 @@ class FoldersController(
             // Created pageable without the "count" sort field, otherwise it will produce an error
             val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
             val result = if(sort.isDescending) mediaFolderRepo.findAllMediaFolderByFileCountDesc(newPageable) else mediaFolderRepo.findAllMediaFolderByFileCountAsc(newPageable)
-            result.map { Folder(it.name, it.coverUrl ?: "", it.count, it.id) }
+            result.map { it.toFolder(ipAddress) }
         } else {
-            mediaFolderRepo.findAll(pageable).map { it.toDto() }
+            mediaFolderRepo.findAll(pageable).map { it.toDto(ipAddress) }
         }
     }
 
@@ -121,9 +169,9 @@ class FoldersController(
             val newPageable = PageRequest.of(pageable.pageNumber, pageable.pageSize)
             val result = if(sort.isDescending)
                 mediaFolderRepo.findByNameContainingAndFileCountDesc(query, newPageable) else mediaFolderRepo.findByNameContainingAndFileCountAsc(query, newPageable)
-            result.map { Folder(it.name, it.coverUrl ?: "", it.count, it.id) }
+            result.map { it.toFolder(ipAddress) }
         } else {
-            mediaFolderRepo.findByNameContaining(query, pageable).map { it.toDto() }
+            mediaFolderRepo.findByNameContaining(query, pageable).map { it.toDto(ipAddress) }
         }
     }
 
