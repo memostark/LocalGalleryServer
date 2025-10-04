@@ -114,7 +114,7 @@ class TagsController(
         return ResponseEntity(page, HttpStatus.OK)
     }
 
-    @PostMapping("tags/filesall")
+    @PostMapping("/files")
     fun getFilesByTags(@RequestBody ids: FilterTagsRequest, pageable: Pageable): ResponseEntity<SimplePage<FileDTO>>{
         val fileIds = ids.fileTagIds.filter { fileTagsRepo.existsById(it) }
         val folderIds = ids.folderTagIds.filter { folderTagsRepo.existsById(it) }
