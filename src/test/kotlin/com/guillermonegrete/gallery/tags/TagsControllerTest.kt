@@ -176,7 +176,7 @@ class TagsControllerTest(
         val file = MediaFile("my_file.jpg", folder = MediaFolder("my_folder"))
         every { mediaFileRepository.findFilesByFileTagsIds(listOf(0), DEFAULT_PAGEABLE) } returns PageImpl(listOf(file), DEFAULT_PAGEABLE, 1)
 
-        val result = mockMvc.perform(post("/tags/filesall")
+        val result = mockMvc.perform(post("/files")
             .contentType(MediaType.APPLICATION_JSON)
             .content("""{"fileTagIds": [0]}"""))
             .andExpect(status().isOk)
