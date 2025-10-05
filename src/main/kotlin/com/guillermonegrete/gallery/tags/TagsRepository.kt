@@ -16,6 +16,9 @@ interface FileTagsRepository: JpaRepository<TagFile, Long>{
 
     fun findByIdIn(ids: List<Long>): List<TagFile>
 
+    @Query("SELECT new com.guillermonegrete.gallery.tags.data.TagFileDto(t.name, SIZE(t.files), t.creationDate, t.id) FROM TagFile AS t")
+    fun getFileTags(): Set<TagFileDto>
+
     @Query("SELECT new com.guillermonegrete.gallery.tags.data.TagFileDto(t.name, COUNT(t.id), t.creationDate, t.id) FROM TagEntity AS t " +
             "JOIN t.files AS f WHERE :folderId = f.folder.id GROUP BY t.id")
     fun getTagsWithFilesByFolder(folderId: Long): Set<TagFileDto>

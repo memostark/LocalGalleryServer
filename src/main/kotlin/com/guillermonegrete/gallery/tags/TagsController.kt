@@ -52,6 +52,12 @@ class TagsController(
         return if (tagsDto.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tagsDto, HttpStatus.OK)
     }
 
+    @GetMapping("/tags/files")
+    fun getFileTags(): ResponseEntity<Set<TagDto>> {
+        val tags = fileTagsRepo.getFileTags()
+        return if (tags.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tags, HttpStatus.OK)
+    }
+
     @PostMapping("/tags/add")
     fun createTag(@RequestParam name: String): ResponseEntity<Any> {
         if (name.isBlank()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tag can't be blank")
