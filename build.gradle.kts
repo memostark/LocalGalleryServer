@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.guillermonegrete"
-version = "1.12.1"
+version = "1.13.0"
 
 java {
 	toolchain {
