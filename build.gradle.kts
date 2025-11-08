@@ -37,6 +37,7 @@ dependencies {
 	runtimeOnly("com.h2database:h2")
 
 	implementation("net.bramp.ffmpeg:ffmpeg:0.8.0")
+    implementation("com.github.usefulness:webp-imageio:0.10.2")
 
 	// Database migration helper
 	implementation("org.flywaydb:flyway-core")
