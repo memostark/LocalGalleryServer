@@ -6,12 +6,14 @@ import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.data.PagedFolderResponse
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper
+import com.guillermonegrete.gallery.data.files.PagedFileResponse
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
 import com.guillermonegrete.gallery.data.toDto
 import com.guillermonegrete.gallery.data.toFolder
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.TagsRepository
+import com.guillermonegrete.gallery.thumbnails.thumbnailSizesMap
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
@@ -41,15 +43,8 @@ class FoldersController(
     @GetMapping("/folders")
     fun folders(@RequestParam(required = false) query: String?, pageable: Pageable): PagedFolderResponse{
         val folders = if(query == null) getFolderPage(pageable) else getFolderPage(query, pageable)
-
-        val finalFolders = folders.content.map { folder ->
-            val firstFilename = folder.coverUrl
-            val coverUrl = "http://$ipAddress/images/${folder.name}/$firstFilename"
-
-            folder.copy(coverUrl = coverUrl)
-        }
-
-        return PagedFolderResponse(getFolderName(), SimplePage(folders.content, folders.totalPages, folders.totalElements.toInt()))
+        val page = SimplePage(folders.content, folders.totalPages, folders.totalElements.toInt())
+        return PagedFolderResponse(getFolderName(), page, thumbnailSizesMap)
     }
 
     @GetMapping("/folders/{subFolder}")
@@ -64,7 +59,7 @@ class FoldersController(
     }
 
     @GetMapping("/folders/{subFolder}", params = ["page"])
-    fun subFolder(@PathVariable subFolder: String, @RequestParam("page") page: Int, pageable: Pageable): SimplePage<FileDTO>{
+    fun subFolder(@PathVariable subFolder: String, pageable: Pageable): PagedFileResponse {
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder path $subFolder not found")
 
         val filesPage = mediaFilesRepo.findAllByFolder(mediaFolder, pageable)
@@ -74,18 +69,18 @@ class FoldersController(
             fileMapper.toDto(it, "$subFolderPath/${it.filename}")
         }
 
-        return SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
+        return PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
     }
 
     @GetMapping("/files")
-    fun files(pageable: Pageable): SimplePage<FileDTO>{
+    fun files(pageable: Pageable): PagedFileResponse {
         val filesPage = mediaFilesRepo.findAll(pageable)
 
         val finalFiles = filesPage.content.map {
             fileMapper.toSingleDto(it, ipAddress)
         }
 
-        return SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
+        return PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
     }
 
     @PatchMapping("/folder/{id}/cover/{fileId}")
@@ -104,7 +99,7 @@ class FoldersController(
         if(ids.isEmpty()) throw Exception("The tag list is empty")
 
         val finalIds = ids.filter { tagRepo.existsById(it) }
-        if (finalIds.isEmpty()) return PagedFolderResponse(getFolderName(), SimplePage())
+        if (finalIds.isEmpty()) return PagedFolderResponse(getFolderName(), SimplePage(), thumbnailSizesMap)
 
         val sort = pageable.sort.firstOrNull()
         val foldersPage = if (query != null) {
@@ -141,7 +136,7 @@ class FoldersController(
         }
 
         val page  = SimplePage(foldersPage.content, foldersPage.totalPages, foldersPage.totalElements.toInt())
-        return PagedFolderResponse(getFolderName(), page)
+        return PagedFolderResponse(getFolderName(), page, thumbnailSizesMap)
     }
 
     /**
@@ -184,6 +179,4 @@ class FoldersController(
             paths.last()
         }
     }
-
-    private fun MediaFolder.getCover() = coverFile?.filename ?: files.firstOrNull()?.filename ?: ""
 }

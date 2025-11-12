@@ -27,3 +27,5 @@ class ThumbnailsController(private val thumbnailService: ThumbnailService) {
             .body(thumbnailService.generateThumbnail(subFolder, filename, type))
     }
 }
+
+val thumbnailSizesMap = ThumbnailType.entries.associate { it.name.lowercase() to it.size }
