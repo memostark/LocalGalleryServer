@@ -1,7 +1,5 @@
 package com.guillermonegrete.gallery.thumbnails
 
-import com.guillermonegrete.gallery.services.thumbnail.ThumbnailService
-import com.guillermonegrete.gallery.services.thumbnail.ThumbnailType
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping

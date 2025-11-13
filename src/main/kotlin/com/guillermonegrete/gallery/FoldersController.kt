@@ -2,7 +2,6 @@ package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.config.NetworkConfig
 import com.guillermonegrete.gallery.data.Folder
-import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.data.PagedFolderResponse
 import com.guillermonegrete.gallery.data.SimplePage
 import com.guillermonegrete.gallery.data.files.FileMapper

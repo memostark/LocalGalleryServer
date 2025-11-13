@@ -17,6 +17,7 @@ import com.guillermonegrete.gallery.tags.data.TagFile
 import com.guillermonegrete.gallery.tags.data.TagFileDto
 import com.guillermonegrete.gallery.tags.data.TagFolder
 import com.guillermonegrete.gallery.tags.data.TagFolderDto
+import com.guillermonegrete.gallery.thumbnails.ThumbnailService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.assertj.core.api.Assertions.assertThat
@@ -53,6 +54,7 @@ class TagsControllerTest(
     @MockkBean private lateinit var folderTagsRepository: FolderTagsRepository
     @MockkBean private lateinit var mediaFolderRepository: MediaFolderRepository
     @MockkBean private lateinit var mediaFileRepository: MediaFileRepository
+    @MockkBean private lateinit var thumbnailService: ThumbnailService
     @MockkBean private lateinit var networkConfig: NetworkConfig
 
     private val ipAddress = "dummy-address"

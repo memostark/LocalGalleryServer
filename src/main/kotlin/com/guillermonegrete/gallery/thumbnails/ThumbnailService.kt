@@ -1,4 +1,4 @@
-package com.guillermonegrete.gallery.services.thumbnail
+package com.guillermonegrete.gallery.thumbnails
 
 import net.bramp.ffmpeg.FFmpegExecutor
 import net.bramp.ffmpeg.FFprobe
@@ -99,6 +99,6 @@ enum class ThumbnailType(val size: Int) {
 
     companion object {
         fun getThumbnailType(size: String) =
-            ThumbnailType.entries.find { it.name.compareTo(size, true) == 0 }
+            entries.find { it.name.compareTo(size, true) == 0 }
     }
 }
