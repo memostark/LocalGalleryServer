@@ -1,10 +1,10 @@
 package com.guillermonegrete.gallery.thumbnails
 
+import com.guillermonegrete.gallery.FileProvider
 import net.bramp.ffmpeg.FFmpegExecutor
 import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import net.bramp.ffmpeg.probe.FFmpegStream
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
@@ -14,19 +14,19 @@ import javax.imageio.ImageIO
 @Service
 class ThumbnailService(
     private val ffprobe: FFprobe,
-    @param:Value("\${final.path}") private val basePath: String,
+    private val fileProvider: FileProvider,
 ) {
 
     fun generateThumbnail(folder: String, filename: String, type: ThumbnailType): ByteArray {
 
-        val baseFolder = File(basePath, folder)
-        val originalFile = File(baseFolder, filename)
+        val baseFolder = fileProvider.createFromBase(folder)
+        val originalFile = fileProvider.getFile(baseFolder, filename)
 
         // Check if thumbnail already exists
-        val thumbnailsFolder = File(baseFolder, THUMBNAILS_FOLDER)
+        val thumbnailsFolder = fileProvider.getFile(baseFolder, THUMBNAILS_FOLDER)
         if (!thumbnailsFolder.exists()) thumbnailsFolder.mkdir()
         val newFilename = originalFile.nameWithoutExtension + "-" + type.name.lowercase() + "." + THUMBNAIL_EXT
-        val newFile = File(thumbnailsFolder, newFilename)
+        val newFile = fileProvider.getFile(thumbnailsFolder, newFilename)
         if (newFile.exists()) {
             val thumbnail = ImageIO.read(newFile)
             val baos = ByteArrayOutputStream()
@@ -67,7 +67,7 @@ class ThumbnailService(
         val stream = ffprobe.probe(originalFile.absolutePath)?.streams?.find { it.codec_type == FFmpegStream.CodecType.VIDEO }
         val originalIsBigger = stream != null && stream.width > newSize
 
-        val defaultThumbnailFile = File(thumbnailsFolder,   originalFile.nameWithoutExtension + "-default." + THUMBNAIL_EXT)
+        val defaultThumbnailFile = fileProvider.getFile(thumbnailsFolder,   originalFile.nameWithoutExtension + "-default." + THUMBNAIL_EXT)
         if (!originalIsBigger && defaultThumbnailFile.exists()) {
             return ImageIO.read(defaultThumbnailFile)
         }

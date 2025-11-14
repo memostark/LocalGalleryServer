@@ -28,6 +28,9 @@ class GalleryApplication{
 
     @Bean
     fun ffprobe() = FFprobe()
+
+    @Bean
+    fun fileProvider() = DefaultFileProvider(basePath)
 }
     
 fun main(args: Array<String>) {
