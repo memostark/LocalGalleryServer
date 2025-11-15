@@ -94,8 +94,8 @@ class ThumbnailService(
 
 enum class ThumbnailType(val size: Int) {
     Small(100),
-    Medium(200),
-    Large(300);
+    Medium(300),
+    Large(500);
 
     companion object {
         fun getThumbnailType(size: String) =
