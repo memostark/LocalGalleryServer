@@ -28,6 +28,6 @@ open class TagFile(
 
 fun TagFile.toDto() = TagFileDto(name, files.size.toLong(), creationDate, id)
 
-fun TagFile.toSimpleDto() = TagFileDto(name, null, creationDate, id)
+fun TagFile.toBaseDto() = BaseTag(name, creationDate, id)
 
-fun Set<TagFile>.toDto() = map(TagFile::toSimpleDto).toSet()
+fun Set<TagFile>.toBaseDto() = map(TagFile::toBaseDto).toSet()

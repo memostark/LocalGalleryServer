@@ -15,7 +15,7 @@ sealed class TagDto(
 @JsonTypeName("File")
 data class TagFileDto(
     val name: String,
-    val count: Long?,
+    val count: Long,
     /**
      * By default, the db saves in seconds, truncate to avoid having different milliseconds
      */
@@ -33,6 +33,16 @@ data class TagFolderDto(
     val creationDate: Instant = Instant.now().truncatedTo(ChronoUnit.SECONDS),
     val id: Long = 0,
 ): TagDto(TagType.Folder)
+
+/**
+ * DTO for [TagEntity].
+ * Use when the count and type are not required.
+ */
+data class BaseTag(
+    val name: String,
+    val creationDate: Instant,
+    val id: Long,
+)
 
 enum class TagType{
     Folder,
