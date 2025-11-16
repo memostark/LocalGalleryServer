@@ -15,7 +15,7 @@ sealed class TagDto(
 @JsonTypeName("File")
 data class TagFileDto(
     val name: String,
-    val count: Long,
+    val count: Long?,
     /**
      * By default, the db saves in seconds, truncate to avoid having different milliseconds
      */

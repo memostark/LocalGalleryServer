@@ -9,6 +9,9 @@ import com.guillermonegrete.gallery.thumbnails.thumbnailSizesMap
 data class PagedFileResponse(
     @get:JsonUnwrapped
     val page: SimplePage<FileDTO>,
+)
+
+data class FileInfo(
     @get:JsonProperty("thumbnail_sizes")
     val thumbnailSizes: Map<String, Int> = thumbnailSizesMap,
 )

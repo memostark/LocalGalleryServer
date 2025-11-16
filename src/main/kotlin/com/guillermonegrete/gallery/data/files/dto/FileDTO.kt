@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonUnwrapped
 import com.guillermonegrete.gallery.data.Folder
-import com.guillermonegrete.gallery.tags.data.TagEntity
+import com.guillermonegrete.gallery.tags.data.TagDto
 import java.time.Instant
 
 sealed class FileDTO(
@@ -19,7 +19,7 @@ data class BaseFile(
     val height: Int,
     val creationDate: Instant,
     val lastModified: Instant,
-    val tags: Set<TagEntity>,
+    val tags: Set<TagDto>,
     val id: Long,
 )
 

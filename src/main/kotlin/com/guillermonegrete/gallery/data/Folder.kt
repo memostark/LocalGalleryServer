@@ -1,6 +1,5 @@
 package com.guillermonegrete.gallery.data
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.guillermonegrete.gallery.repository.FolderDto
 
 data class Folder(
@@ -13,8 +12,6 @@ data class Folder(
 data class PagedFolderResponse(
     val name: String,
     val page: SimplePage<Folder>,
-    @get:JsonProperty("thumbnail_sizes")
-    val thumbnailSizes: Map<String, Int>,
 )
 
 fun MediaFolder.toDto(fileName: String, ipAddress: String): Folder {

@@ -4,6 +4,7 @@ import com.guillermonegrete.gallery.config.NetworkConfig
 import com.guillermonegrete.gallery.data.Folder
 import com.guillermonegrete.gallery.data.PagedFolderResponse
 import com.guillermonegrete.gallery.data.SimplePage
+import com.guillermonegrete.gallery.data.files.FileInfo
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.PagedFileResponse
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
@@ -12,7 +13,6 @@ import com.guillermonegrete.gallery.data.toFolder
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.TagsRepository
-import com.guillermonegrete.gallery.thumbnails.thumbnailSizesMap
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
@@ -43,7 +43,7 @@ class FoldersController(
     fun folders(@RequestParam(required = false) query: String?, pageable: Pageable): PagedFolderResponse{
         val folders = if(query == null) getFolderPage(pageable) else getFolderPage(query, pageable)
         val page = SimplePage(folders.content, folders.totalPages, folders.totalElements.toInt())
-        return PagedFolderResponse(getFolderName(), page, thumbnailSizesMap)
+        return PagedFolderResponse(getFolderName(), page)
     }
 
     @GetMapping("/folders/{subFolder}")
@@ -82,6 +82,9 @@ class FoldersController(
         return PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
     }
 
+    @GetMapping("/files/info")
+    fun fileInfo() = FileInfo()
+
     @PatchMapping("/folder/{id}/cover/{fileId}")
     fun updateFolderCover(@PathVariable("id") id: Long, @PathVariable("fileId") fileId: Long): ResponseEntity<Folder> {
         val folder = mediaFolderRepo.findByIdOrNull(id) ?: throw RuntimeException("Folder id $id not found")
@@ -98,7 +101,7 @@ class FoldersController(
         if(ids.isEmpty()) throw Exception("The tag list is empty")
 
         val finalIds = ids.filter { tagRepo.existsById(it) }
-        if (finalIds.isEmpty()) return PagedFolderResponse(getFolderName(), SimplePage(), thumbnailSizesMap)
+        if (finalIds.isEmpty()) return PagedFolderResponse(getFolderName(), SimplePage())
 
         val sort = pageable.sort.firstOrNull()
         val foldersPage = if (query != null) {
@@ -135,7 +138,7 @@ class FoldersController(
         }
 
         val page  = SimplePage(foldersPage.content, foldersPage.totalPages, foldersPage.totalElements.toInt())
-        return PagedFolderResponse(getFolderName(), page, thumbnailSizesMap)
+        return PagedFolderResponse(getFolderName(), page)
     }
 
     /**

@@ -11,7 +11,6 @@ import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.services.FolderFetchingService
 import com.guillermonegrete.gallery.tags.TagsControllerTest.Companion.DEFAULT_PAGEABLE
 import com.guillermonegrete.gallery.tags.TagsRepository
-import com.guillermonegrete.gallery.thumbnails.thumbnailSizesMap
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.assertj.core.api.Assertions.assertThat
@@ -79,7 +78,6 @@ class FoldersControllerTest(
             path,
             SimplePage(subList.map { Folder(it.name, "http://$ipAddress/images/${it.name}/image.jpg", 1, it.id) },
             2, content.size),
-            thumbnailSizesMap,
         )
         val result = mockMvc.perform(get("/folders")).andDo(print())
             .andExpect(status().isOk)
@@ -138,7 +136,7 @@ class FoldersControllerTest(
             .andReturn()
 
         val resultResponse = objectMapper.readValue(result.response.contentAsString, PagedFolderResponse::class.java)
-        val expected = PagedFolderResponse(path, SimplePage(listOf(folder.toDto(ipAddress)), 1, 1), thumbnailSizesMap)
+        val expected = PagedFolderResponse(path, SimplePage(listOf(folder.toDto(ipAddress)), 1, 1))
         assertThat(resultResponse).isEqualTo(expected)
     }
 

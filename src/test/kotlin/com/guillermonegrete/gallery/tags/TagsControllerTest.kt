@@ -21,6 +21,7 @@ import com.guillermonegrete.gallery.thumbnails.ThumbnailService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -159,16 +160,19 @@ class TagsControllerTest(
         every { mediaFileRepository.saveAll<MediaFile>(any()) } returns listOf()
 
         // Using string comparison instead of
-        val expectedResponse =
-            """[{"url":"http://$ipAddress/images//file_1","width":0,"height":0,"creationDate":"$date","lastModified":"$date","tags":[{"name":"my_tag","creationDate":"$date","id":0}],"id":0,"file_type":"Image"},""" +
-            """{"url":"http://$ipAddress/images//file_2","width":0,"height":0,"creationDate":"$date","lastModified":"$date","tags":[{"name":"my_tag","creationDate":"$date","id":0}],"id":0,"file_type":"Image"},""" +
-            """{"url":"http://$ipAddress/images//file_3","width":0,"height":0,"creationDate":"$date","lastModified":"$date","tags":[{"name":"my_tag","creationDate":"$date","id":0}],"id":0,"file_type":"Image"}]"""
+        val expectedResponse = files.map {
+            mapper.toDtoWithHost(MediaFile(it.filename, creationDate = date, lastModified = date, tags = mutableSetOf(savedTag)), ipAddress)
+        }
 
-        mockMvc.perform(post("/tags/{id}/files", tagId)
+        val result = mockMvc.perform(post("/tags/{id}/files", tagId)
             .contentType(MediaType.APPLICATION_JSON)
             .content("""[2,3,4]"""))
             .andExpect(status().isOk)
-            .andExpect(content().string(expectedResponse))
+            .andReturn()
+
+        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<List<ImageFileDTO>>() {})
+        print(expectedResponse)
+        assertEquals(expectedResponse, resultResponse)
     }
 
     @Test
