@@ -1,6 +1,7 @@
 package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.services.FolderProcessingService
+import net.bramp.ffmpeg.FFmpegExecutor
 import net.bramp.ffmpeg.FFprobe
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.CommandLineRunner
@@ -31,6 +32,9 @@ class GalleryApplication{
 
     @Bean
     fun fileProvider() = DefaultFileProvider(basePath)
+
+    @Bean
+    fun ffExecutor() = FFmpegExecutor()
 }
     
 fun main(args: Array<String>) {
