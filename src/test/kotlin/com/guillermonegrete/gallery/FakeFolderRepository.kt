@@ -31,6 +31,10 @@ class FakeFolderRepository: FoldersRepository {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
+    override fun createFolder(path: String): Boolean {
+        TODO("Not yet implemented")
+    }
+
     @VisibleForTesting
     fun addFolders(vararg folders: String) {
         for (folder in folders) {

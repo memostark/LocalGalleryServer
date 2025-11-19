@@ -11,4 +11,9 @@ interface FoldersRepository {
     fun getMediaInfo(path: String): MediaFile?
 
     fun getMedia(folder: String): List<MediaFile>
+
+    /**
+     * Returns true if a new folder was created, false if the folder already existed
+     */
+    fun createFolder(path: String): Boolean
 }

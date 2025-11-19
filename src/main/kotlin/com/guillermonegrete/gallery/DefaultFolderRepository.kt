@@ -38,6 +38,11 @@ class DefaultFolderRepository(
         return File(folder).listFiles()?.mapNotNull { file -> getMediaFile(file) } ?: emptyList()
     }
 
+    override fun createFolder(path: String): Boolean {
+        val folder = File(path)
+        return if (!folder.exists()) folder.mkdir() else false
+    }
+
     private fun getSuffix(imgFile: File): String?{
         val pos = imgFile.name.lastIndexOf(".")
         if (pos == -1) {

@@ -1,5 +1,6 @@
 package com.guillermonegrete.gallery.services
 
+import com.guillermonegrete.gallery.FileProvider
 import com.guillermonegrete.gallery.FoldersRepository
 import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.MediaFolder
@@ -7,11 +8,16 @@ import com.guillermonegrete.gallery.data.files.ImageEntity
 import com.guillermonegrete.gallery.data.files.VideoEntity
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
+import com.guillermonegrete.gallery.thumbnails.THUMBNAILS_FOLDER
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
+import io.mockk.junit5.MockKExtension
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import java.io.File
 
+@ExtendWith(MockKExtension::class)
 class FolderProcessingServiceTest{
 
     private lateinit var service: FolderProcessingService
@@ -20,11 +26,20 @@ class FolderProcessingServiceTest{
     @MockK private lateinit var fileEntityRepo: MediaFileRepository
     @MockK private lateinit var folderEntityRepo: MediaFolderRepository
     @MockK private lateinit var fetchingService: FolderFetchingService
+    @MockK private lateinit var fileProvider: FileProvider
 
     @BeforeEach
     fun setUp(){
-        MockKAnnotations.init(this)
-        service = FolderProcessingService(folderRepository, fileEntityRepo, folderEntityRepo, fetchingService)
+        service = FolderProcessingService(folderRepository, fileEntityRepo, folderEntityRepo, fileProvider, fetchingService)
+
+        // Mocks for the thumbnails
+        val mockFolder = mockk<File>()
+        val mockThumbnailFolder = mockk<File>()
+        val thumbnailPath = "/thumbnail"
+        every { mockThumbnailFolder.absolutePath } returns thumbnailPath
+        every { fileProvider.createFromBase(any()) } returns mockFolder
+        every { fileProvider.getFile(mockFolder, THUMBNAILS_FOLDER) } returns mockThumbnailFolder
+        every { folderRepository.createFolder(thumbnailPath) } returns false
     }
 
     @Test

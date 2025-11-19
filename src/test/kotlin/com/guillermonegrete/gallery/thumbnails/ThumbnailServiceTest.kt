@@ -58,7 +58,7 @@ class ThumbnailServiceTest {
         // Generate the base and thumbnail folders, and the original and thumbnai file mocks
         every { fileProvider.createFromBase(DUMMY_FOLDER) } returns mockBaseFolder
         every { fileProvider.getFile(mockBaseFolder, DUMMY_FILE) } returns mockOriginalFile
-        every { fileProvider.getFile(mockBaseFolder, ThumbnailService.THUMBNAILS_FOLDER) } returns mockThumbnailsBase
+        every { fileProvider.getFile(mockBaseFolder, THUMBNAILS_FOLDER) } returns mockThumbnailsBase
         val thumbnailFilename = ThumbnailType.Small.filename(DUMMY_FILE_NO_EXT)
         every { fileProvider.getFile(mockThumbnailsBase, thumbnailFilename) } returns mockThumbnail
 

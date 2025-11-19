@@ -111,10 +111,11 @@ class ThumbnailService(
     }
 
     companion object {
-        const val THUMBNAILS_FOLDER = ".thumbnails"
         const val THUMBNAIL_EXT = "webp"
     }
 }
+
+const val THUMBNAILS_FOLDER = ".thumbnails"
 
 enum class ThumbnailType(val size: Int) {
     Original(0),
