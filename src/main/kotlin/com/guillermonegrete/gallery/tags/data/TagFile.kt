@@ -27,3 +27,7 @@ open class TagFile(
 ): TagEntity(name, creationDate, id)
 
 fun TagFile.toDto() = TagFileDto(name, files.size.toLong(), creationDate, id)
+
+fun TagFile.toBaseDto() = BaseTag(name, creationDate, id)
+
+fun Set<TagFile>.toBaseDto() = map(TagFile::toBaseDto).toSet()

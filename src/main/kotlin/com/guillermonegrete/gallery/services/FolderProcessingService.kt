@@ -1,9 +1,11 @@
 package com.guillermonegrete.gallery.services
 
+import com.guillermonegrete.gallery.FileProvider
 import com.guillermonegrete.gallery.FoldersRepository
 import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
+import com.guillermonegrete.gallery.thumbnails.THUMBNAILS_FOLDER
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 
@@ -15,7 +17,8 @@ class FolderProcessingService(
     private val folderRepository: FoldersRepository,
     private val fileEntityRepo: MediaFileRepository,
     private val folderEntityRepo: MediaFolderRepository,
-    private val service: FolderFetchingService
+    private val fileProvider: FileProvider,
+    private val service: FolderFetchingService,
 ) {
 
     fun processFolder(basePath: String){
@@ -23,6 +26,7 @@ class FolderProcessingService(
         val folders = folderRepository.getFolders(basePath)
         for(folder in folders){
             var mediaFolder = service.getMediaFolder(folder)
+            createThumbnailFolder(folder)
 
             if(mediaFolder == null){
                 mediaFolder = MediaFolder(folder)
@@ -36,7 +40,7 @@ class FolderProcessingService(
                     try {
                         fileEntityRepo.save(file)
                     } catch (e: DataIntegrityViolationException){
-                        println("Duplicate file in database ${file.filename}")
+                        println("Duplicate file in database ${file.filename}. Message: ${e.message}")
                     }
                 }
             }else{
@@ -52,12 +56,18 @@ class FolderProcessingService(
                     try {
                         fileEntityRepo.save(imageFile)
                     } catch (e: DataIntegrityViolationException){
-                        println("Duplicate file in database $filename")
+                        println("Duplicate file in database $filename. Message: ${e.message}")
                     }
                 }
             }
             println("Processed $folder...")
         }
         println("All folders processed")
+    }
+
+    fun createThumbnailFolder(folder: String) {
+        val currentFolder = fileProvider.createFromBase(folder)
+        val success = folderRepository.createFolder(fileProvider.getFile(currentFolder, THUMBNAILS_FOLDER).absolutePath)
+        if (success) println("Created thumbnail folder for $folder")
     }
 }

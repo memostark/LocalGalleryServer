@@ -1,9 +1,10 @@
 package com.guillermonegrete.gallery.data.files.dto
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonUnwrapped
 import com.guillermonegrete.gallery.data.Folder
-import com.guillermonegrete.gallery.tags.data.TagEntity
+import com.guillermonegrete.gallery.tags.data.BaseTag
 import java.time.Instant
 
 sealed class FileDTO(
@@ -11,36 +12,39 @@ sealed class FileDTO(
     val type: FileType
 )
 
-data class ImageFileDTO(
+data class BaseFile(
     val url: String,
+    val filename: String,
     val width: Int,
     val height: Int,
     val creationDate: Instant,
     val lastModified: Instant,
-    val tags: Set<TagEntity>,
+    val tags: Set<BaseTag>,
     val id: Long,
+)
+
+data class ImageFileDTO(
+    @get:JsonUnwrapped
+    val base: BaseFile,
 ): FileDTO(FileType.Image)
 
 data class VideoFileDTO(
-    val url: String,
-    val width: Int,
-    val height: Int,
-    val creationDate: Instant,
-    val lastModified: Instant,
     val duration: Int,
-    val tags: Set<TagEntity>,
-    val id: Long,
+    @get:JsonUnwrapped
+    val base: BaseFile,
 ): FileDTO(FileType.Video)
 
 data class SingleImageFile(
     val folder: Folder,
-    @JsonUnwrapped
+    @JsonIgnoreProperties("file_type") // avoid duplicating the field
+    @get:JsonUnwrapped
     val dto: ImageFileDTO,
 ): FileDTO(FileType.Image)
 
 data class SingleVideoFile(
     val folder: Folder,
-    @JsonUnwrapped
+    @JsonIgnoreProperties("file_type")
+    @get:JsonUnwrapped
     val dto: VideoFileDTO,
 ): FileDTO(FileType.Video)
 

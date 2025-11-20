@@ -1,6 +1,6 @@
 
 plugins {
-	id("org.springframework.boot") version "3.4.1"
+	id("org.springframework.boot") version "3.5.7"
 	id("io.spring.dependency-management") version "1.0.9.RELEASE"
 	id ("org.flywaydb.flyway") version "7.14.0"
 	val kotlinVersion = "2.2.0"
@@ -37,6 +37,7 @@ dependencies {
 	runtimeOnly("com.h2database:h2")
 
 	implementation("net.bramp.ffmpeg:ffmpeg:0.8.0")
+    implementation("com.github.usefulness:webp-imageio:0.10.2")
 
 	// Database migration helper
 	implementation("org.flywaydb:flyway-core")

@@ -77,7 +77,7 @@ class FoldersControllerTest(
         val expected = PagedFolderResponse(
             path,
             SimplePage(subList.map { Folder(it.name, "http://$ipAddress/images/${it.name}/image.jpg", 1, it.id) },
-            2, content.size)
+            2, content.size),
         )
         val result = mockMvc.perform(get("/folders")).andDo(print())
             .andExpect(status().isOk)

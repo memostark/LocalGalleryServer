@@ -34,6 +34,16 @@ data class TagFolderDto(
     val id: Long = 0,
 ): TagDto(TagType.Folder)
 
+/**
+ * DTO for [TagEntity].
+ * Use when the count and type are not required.
+ */
+data class BaseTag(
+    val name: String,
+    val creationDate: Instant,
+    val id: Long,
+)
+
 enum class TagType{
     Folder,
     File,

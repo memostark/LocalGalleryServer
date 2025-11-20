@@ -2,10 +2,11 @@ package com.guillermonegrete.gallery
 
 import com.guillermonegrete.gallery.config.NetworkConfig
 import com.guillermonegrete.gallery.data.Folder
-import com.guillermonegrete.gallery.data.MediaFolder
 import com.guillermonegrete.gallery.data.PagedFolderResponse
 import com.guillermonegrete.gallery.data.SimplePage
+import com.guillermonegrete.gallery.data.files.FileInfo
 import com.guillermonegrete.gallery.data.files.FileMapper
+import com.guillermonegrete.gallery.data.files.PagedFileResponse
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
 import com.guillermonegrete.gallery.data.toDto
 import com.guillermonegrete.gallery.data.toFolder
@@ -41,15 +42,8 @@ class FoldersController(
     @GetMapping("/folders")
     fun folders(@RequestParam(required = false) query: String?, pageable: Pageable): PagedFolderResponse{
         val folders = if(query == null) getFolderPage(pageable) else getFolderPage(query, pageable)
-
-        val finalFolders = folders.content.map { folder ->
-            val firstFilename = folder.coverUrl
-            val coverUrl = "http://$ipAddress/images/${folder.name}/$firstFilename"
-
-            folder.copy(coverUrl = coverUrl)
-        }
-
-        return PagedFolderResponse(getFolderName(), SimplePage(folders.content, folders.totalPages, folders.totalElements.toInt()))
+        val page = SimplePage(folders.content, folders.totalPages, folders.totalElements.toInt())
+        return PagedFolderResponse(getFolderName(), page)
     }
 
     @GetMapping("/folders/{subFolder}")
@@ -64,7 +58,7 @@ class FoldersController(
     }
 
     @GetMapping("/folders/{subFolder}", params = ["page"])
-    fun subFolder(@PathVariable subFolder: String, @RequestParam("page") page: Int, pageable: Pageable): SimplePage<FileDTO>{
+    fun subFolder(@PathVariable subFolder: String, pageable: Pageable): PagedFileResponse {
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder path $subFolder not found")
 
         val filesPage = mediaFilesRepo.findAllByFolder(mediaFolder, pageable)
@@ -74,19 +68,22 @@ class FoldersController(
             fileMapper.toDto(it, "$subFolderPath/${it.filename}")
         }
 
-        return SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
+        return PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
     }
 
     @GetMapping("/files")
-    fun files(pageable: Pageable): SimplePage<FileDTO>{
+    fun files(pageable: Pageable): PagedFileResponse {
         val filesPage = mediaFilesRepo.findAll(pageable)
 
         val finalFiles = filesPage.content.map {
             fileMapper.toSingleDto(it, ipAddress)
         }
 
-        return SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
+        return PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
     }
+
+    @GetMapping("/files/info")
+    fun fileInfo() = FileInfo()
 
     @PatchMapping("/folder/{id}/cover/{fileId}")
     fun updateFolderCover(@PathVariable("id") id: Long, @PathVariable("fileId") fileId: Long): ResponseEntity<Folder> {
@@ -184,6 +181,4 @@ class FoldersController(
             paths.last()
         }
     }
-
-    private fun MediaFolder.getCover() = coverFile?.filename ?: files.firstOrNull()?.filename ?: ""
 }
