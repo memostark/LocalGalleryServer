@@ -1,12 +1,11 @@
 package com.guillermonegrete.gallery.thumbnails
 
-import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.bind.annotation.RestController
+import java.util.concurrent.CompletableFuture
 
 @RestController
 class ThumbnailsController(private val thumbnailService: ThumbnailService) {
@@ -17,12 +16,10 @@ class ThumbnailsController(private val thumbnailService: ThumbnailService) {
         @PathVariable subFolder: String,
         @PathVariable filename: String,
         @RequestParam("size") size: String?
-    ): ResponseEntity<ByteArray> {
+    ): CompletableFuture<ByteArray> {
         val type = if (size == null) ThumbnailType.Small else ThumbnailType.getThumbnailType(size) ?: ThumbnailType.Small
 
-        return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType("image/webp"))
-            .body(thumbnailService.generateThumbnail(subFolder, filename, type))
+        return thumbnailService.generateThumbnail(subFolder, filename, type)
     }
 }
 
