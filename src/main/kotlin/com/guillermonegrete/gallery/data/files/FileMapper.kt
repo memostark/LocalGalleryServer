@@ -30,7 +30,7 @@ class FileMapper {
 
     fun toSingleDto(e: MediaFile, host: String): FileDTO {
         val url = "http://$host/images/${e.folder.name}/${e.filename}"
-        val folder = Folder(e.folder.name, "", e.folder.files.size, e.folder.id)
+        val folder = Folder(e.folder.name, "", "", e.folder.files.size, e.folder.id)
         val base = BaseFile(url, e.filename, e.width, e.height, e.creationDate, e.lastModified, e.tags.toBaseDto(), e.id)
         return when(e){
             is VideoEntity -> SingleVideoFile(folder, VideoFileDTO(e.duration, base))
