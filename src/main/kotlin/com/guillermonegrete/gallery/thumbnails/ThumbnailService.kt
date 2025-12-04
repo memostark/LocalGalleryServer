@@ -32,7 +32,7 @@ class ThumbnailService(
         // Check if thumbnail already exists
         val thumbnailsFolder = fileProvider.getFile(baseFolder, THUMBNAILS_FOLDER)
         if (!thumbnailsFolder.exists()) thumbnailsFolder.mkdir()
-        val newFilename = type.filename(originalFile.nameWithoutExtension)
+        val newFilename = type.filename(originalFile.name)
         val newFile = fileProvider.getFile(thumbnailsFolder, newFilename)
         if (newFile.exists()) {
             val thumbnail = ImageIO.read(newFile)
@@ -83,7 +83,7 @@ class ThumbnailService(
 
         var targetFile = newFile
         if (!originalIsBigger) {
-            targetFile = fileProvider.getFile(thumbnailsFolder, ThumbnailType.Original.filename(originalFile.nameWithoutExtension))
+            targetFile = fileProvider.getFile(thumbnailsFolder, ThumbnailType.Original.filename(originalFile.name))
             if (targetFile.exists()) return ImageIO.read(targetFile)
         }
 
@@ -133,4 +133,4 @@ enum class ThumbnailType(val size: Int) {
     }
 }
 
-fun ThumbnailType.filename(nameNoExt: String) = "$nameNoExt-${name.lowercase()}.$THUMBNAIL_EXT"
+fun ThumbnailType.filename(originalFilename: String) = "$originalFilename.${name.lowercase()}.$THUMBNAIL_EXT"
