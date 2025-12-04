@@ -69,14 +69,15 @@ class FoldersControllerTest(
     @Throws(Exception::class)
     @Test
     fun `Folders endpoint returns paged response model`(){
-        val pageable = PageRequest.of(0, 20)
-        val content = List(21) { MediaFolder("name$it", listOf(MediaFile("image.jpg")), id = 100L + it) }
+        val filename = "image.jpg"
+        val content = List(21) { MediaFolder("name$it", listOf(MediaFile(filename)), id = 100L + it) }
         val subList = content.subList(0, 20)
+        val pageable = PageRequest.of(0, 20)
         every { mediaFolderRepository.findAll(pageable) } returns PageImpl(subList, pageable, content.size.toLong())
 
         val expected = PagedFolderResponse(
             path,
-            SimplePage(subList.map { Folder(it.name, "http://$ipAddress/images/${it.name}/image.jpg", 1, it.id) },
+            SimplePage(subList.map { Folder(it.name, "http://$ipAddress/images/${it.name}/$filename", filename, 1, it.id) },
             2, content.size),
         )
         val result = mockMvc.perform(get("/folders")).andDo(print())

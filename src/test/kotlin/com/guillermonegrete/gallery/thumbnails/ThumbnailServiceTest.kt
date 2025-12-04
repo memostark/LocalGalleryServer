@@ -59,7 +59,7 @@ class ThumbnailServiceTest {
         every { fileProvider.createFromBase(DUMMY_FOLDER) } returns mockBaseFolder
         every { fileProvider.getFile(mockBaseFolder, DUMMY_FILE) } returns mockOriginalFile
         every { fileProvider.getFile(mockBaseFolder, THUMBNAILS_FOLDER) } returns mockThumbnailsBase
-        val thumbnailFilename = ThumbnailType.Small.filename(DUMMY_FILE_NO_EXT)
+        val thumbnailFilename = ThumbnailType.Small.filename(DUMMY_FILE)
         every { fileProvider.getFile(mockThumbnailsBase, thumbnailFilename) } returns mockThumbnail
 
         every { mockThumbnailsBase.exists() } returns true
@@ -67,7 +67,7 @@ class ThumbnailServiceTest {
         every { mockThumbnail.exists() } returns true
 
         every { mockOriginalFile.absolutePath } returns ""
-        every { mockThumbnail.absolutePath } returns "thumbnail.webp"
+        every { mockThumbnail.absolutePath } returns "/root/$thumbnailFilename"
 
         every { ffExecutor.createJob(any()) } returns mockk(relaxed = true)
     }
@@ -196,7 +196,7 @@ class ThumbnailServiceTest {
     private fun createOriginalThumbnailMock(exists: Boolean = true): File {
         val mockSourceThumbnail = mockk<File>()
         every { mockSourceThumbnail.exists() } returns exists
-        val thumbnailFilename = ThumbnailType.Original.filename(DUMMY_FILE_NO_EXT)
+        val thumbnailFilename = ThumbnailType.Original.filename(DUMMY_FILE)
         every { mockSourceThumbnail.absolutePath } returns thumbnailFilename
         every { fileProvider.getFile(mockThumbnailsBase, thumbnailFilename) } returns mockSourceThumbnail
 

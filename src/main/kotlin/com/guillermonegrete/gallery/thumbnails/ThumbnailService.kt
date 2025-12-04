@@ -6,12 +6,14 @@ import net.bramp.ffmpeg.FFmpegExecutor
 import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import net.bramp.ffmpeg.probe.FFmpegStream
+import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.util.concurrent.CompletableFuture
 import javax.imageio.ImageIO
 
 @Service
@@ -21,7 +23,8 @@ class ThumbnailService(
     private val fileProvider: FileProvider,
 ) {
 
-    fun generateThumbnail(folder: String, filename: String, type: ThumbnailType): ByteArray {
+    @Async
+    fun generateThumbnail(folder: String, filename: String, type: ThumbnailType): CompletableFuture<ByteArray> {
 
         val baseFolder = fileProvider.createFromBase(folder)
         val originalFile = fileProvider.getFile(baseFolder, filename)
@@ -29,20 +32,20 @@ class ThumbnailService(
         // Check if thumbnail already exists
         val thumbnailsFolder = fileProvider.getFile(baseFolder, THUMBNAILS_FOLDER)
         if (!thumbnailsFolder.exists()) thumbnailsFolder.mkdir()
-        val newFilename = type.filename(originalFile.nameWithoutExtension)
+        val newFilename = type.filename(originalFile.name)
         val newFile = fileProvider.getFile(thumbnailsFolder, newFilename)
         if (newFile.exists()) {
             val thumbnail = ImageIO.read(newFile)
             val baos = ByteArrayOutputStream()
             ImageIO.write(thumbnail, THUMBNAIL_EXT, baos)
-            return baos.toByteArray()
+            return CompletableFuture.completedFuture(baos.toByteArray())
         }
 
         // Return original size thumbnail (for videos only)
         if (type == ThumbnailType.Original) {
             val baos = ByteArrayOutputStream()
             ImageIO.write(generateVideoThumbnail(originalFile, newFile), THUMBNAIL_EXT, baos)
-            return baos.toByteArray()
+            return CompletableFuture.completedFuture(baos.toByteArray())
         }
 
         // Otherwise generate new thumbnail
@@ -65,7 +68,7 @@ class ThumbnailService(
         // Return byte data
         val baos = ByteArrayOutputStream()
         ImageIO.write(img, THUMBNAIL_EXT, baos)
-        return baos.toByteArray()
+        return CompletableFuture.completedFuture(baos.toByteArray())
     }
 
     private fun generateVideoThumbnail(
@@ -80,7 +83,7 @@ class ThumbnailService(
 
         var targetFile = newFile
         if (!originalIsBigger) {
-            targetFile = fileProvider.getFile(thumbnailsFolder, ThumbnailType.Original.filename(originalFile.nameWithoutExtension))
+            targetFile = fileProvider.getFile(thumbnailsFolder, ThumbnailType.Original.filename(originalFile.name))
             if (targetFile.exists()) return ImageIO.read(targetFile)
         }
 
@@ -130,4 +133,4 @@ enum class ThumbnailType(val size: Int) {
     }
 }
 
-fun ThumbnailType.filename(nameNoExt: String) = "$nameNoExt-${name.lowercase()}.$THUMBNAIL_EXT"
+fun ThumbnailType.filename(originalFilename: String) = "$originalFilename.${name.lowercase()}.$THUMBNAIL_EXT"

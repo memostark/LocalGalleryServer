@@ -5,6 +5,7 @@ import com.guillermonegrete.gallery.repository.FolderDto
 data class Folder(
     val name:String,
     val coverUrl: String,
+    val coverFilename: String,
     val count: Int,
     val id: Long,
 )
@@ -16,9 +17,12 @@ data class PagedFolderResponse(
 
 fun MediaFolder.toDto(fileName: String, ipAddress: String): Folder {
     val coverUrl = "http://$ipAddress/images/$name/$fileName"
-    return Folder(name, coverUrl, files.size, id)
+    return Folder(name, coverUrl, fileName, files.size, id)
 }
 
-fun MediaFolder.toDto(ipAddress: String) = Folder(name, "http://$ipAddress/images/$name/${coverFile?.filename ?: files.firstOrNull()?.filename}", files.size, id)
+fun MediaFolder.toDto(ipAddress: String): Folder {
+    val filename = coverFile?.filename ?: files.firstOrNull()?.filename ?: ""
+    return Folder(name, "http://$ipAddress/images/$name/$filename", filename, files.size, id)
+}
 
-fun FolderDto.toFolder(ipAddress: String) = Folder(name, "http://$ipAddress/images/$name/$coverUrl", count, id)
+fun FolderDto.toFolder(ipAddress: String) = Folder(name, "http://$ipAddress/images/$name/$coverUrl", coverUrl ?: "", count, id)
