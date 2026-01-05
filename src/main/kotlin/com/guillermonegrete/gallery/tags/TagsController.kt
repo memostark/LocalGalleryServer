@@ -12,10 +12,8 @@ import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.data.TagDto
 import com.guillermonegrete.gallery.tags.data.TagEntity
 import com.guillermonegrete.gallery.tags.data.TagFile
-import com.guillermonegrete.gallery.tags.data.TagFileDto
 import com.guillermonegrete.gallery.tags.data.TagFolder
 import com.guillermonegrete.gallery.tags.data.TagRequest
-import com.guillermonegrete.gallery.tags.data.toDto
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Pageable
@@ -23,7 +21,6 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.net.InetAddress
 
 
 @RestController
@@ -41,16 +38,10 @@ class TagsController(
     private val ipAddress: String by lazy { networkConfig.getLocalIpAddress() }
 
     @GetMapping("/tags")
-    fun getAllTags(): ResponseEntity<List<TagDto>> {
-        val tags = tagRepo.findAll()
-        val tagsDto = tags.map {
-            when(it) {
-                is TagFile -> it.toDto()
-                is TagFolder -> it.toDto()
-                else -> TagFileDto("", 0)
-            }
-        }
-        return if (tagsDto.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tagsDto, HttpStatus.OK)
+    fun getAllTags(): ResponseEntity<Set<TagDto>> {
+        val fileTags = fileTagsRepo.getFileTags()
+        val folderTags = folderTagsRepo.getFolderTags()
+        return ResponseEntity(fileTags + folderTags, HttpStatus.OK)
     }
 
     @GetMapping("/tags/files")
@@ -127,12 +118,12 @@ class TagsController(
         val folderIds = ids.folderTagIds.filter { folderTagsRepo.existsById(it) }
 
         val filesPage = when {
-            fileIds.isNotEmpty() -> {
+            fileIds.isNotEmpty() ->
                 if (folderIds.isNotEmpty()) filesRepo.findFilesByTagsIds(fileIds, folderIds, pageable)
                 else filesRepo.findFilesByFileTagsIds(fileIds, pageable)
-            }
-            else -> if (folderIds.isNotEmpty()) filesRepo.findFilesByFolderTagsIds(folderIds, pageable)
-            else return ResponseEntity(PagedFileResponse(SimplePage()), HttpStatus.OK)
+            else ->
+                if (folderIds.isNotEmpty()) filesRepo.findFilesByFolderTagsIds(folderIds, pageable)
+                else return ResponseEntity(PagedFileResponse(SimplePage()), HttpStatus.OK)
         }
 
         val finalFiles = filesPage.content.map { fileMapper.toSingleDto(it, ipAddress) }
@@ -307,11 +298,6 @@ class TagsController(
     fun deleteTag(@PathVariable("id") id: Long): ResponseEntity<HttpStatus> {
         tagRepo.deleteById(id)
         return ResponseEntity(HttpStatus.NO_CONTENT)
-    }
-
-    fun getLocalIpAddress(): String{
-        val inetAddress = InetAddress.getLocalHost()
-        return inetAddress.hostAddress
     }
 
     data class FilterTagsRequest(
