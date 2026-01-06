@@ -25,5 +25,3 @@ open class TagFolder(
     open val folders: MutableSet<MediaFolder> = mutableSetOf(),
     id: Long = 0,
 ): TagEntity(name, creationDate, id)
-
-fun TagFolder.toDto() = TagFolderDto(name, folders.size.toLong(), creationDate, id)

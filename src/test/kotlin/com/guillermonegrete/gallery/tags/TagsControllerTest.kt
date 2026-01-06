@@ -68,19 +68,20 @@ class TagsControllerTest(
     @Test
     fun `Given tags, when get all endpoint called, then return them`(){
 
-        val tags = listOf(TagFile("my_tag"), TagFolder("my_folder_tag"))
-        every { tagsRepository.findAll() } returns tags
+        val tags = listOf(TagFileDto("my_tag"), TagFolderDto("my_folder_tag"))
+        every { fileTagsRepository.getFileTags() } returns setOf(tags.first() as TagFileDto)
+        every { folderTagsRepository.getFolderTags() } returns setOf(tags[1] as TagFolderDto)
 
         val result = mockMvc.perform(get("/tags"))
             .andDo(print())
             .andExpect(status().isOk)
             .andReturn()
 
-        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<List<TagEntity>>() {})
+        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<List<TagDto>>() {})
 
         assertThat(resultResponse).hasSize(2)
-        assertTagEqual(tags.first(), resultResponse.first())
-        assertTagEqual(tags[1], resultResponse[1])
+        assertEquals(tags.first(), resultResponse.first())
+        assertEquals(tags[1], resultResponse[1])
     }
 
     //region File tag tests

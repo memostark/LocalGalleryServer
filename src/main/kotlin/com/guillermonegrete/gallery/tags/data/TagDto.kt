@@ -15,7 +15,7 @@ sealed class TagDto(
 @JsonTypeName("File")
 data class TagFileDto(
     val name: String,
-    val count: Long,
+    val count: Long = 0,
     /**
      * By default, the db saves in seconds, truncate to avoid having different milliseconds
      */
@@ -26,7 +26,7 @@ data class TagFileDto(
 @JsonTypeName("Folder")
 data class TagFolderDto(
     val name: String,
-    val count: Long,
+    val count: Long = 0,
     /**
      * By default, the db saves in seconds, truncate to avoid having different milliseconds
      */
