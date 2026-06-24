@@ -5,6 +5,8 @@ import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.files.dto.*
 import com.guillermonegrete.gallery.tags.data.toBaseDto
 import org.springframework.stereotype.Component
+import org.springframework.web.util.UriUtils
+import java.nio.charset.StandardCharsets
 
 @Component
 class FileMapper {
@@ -19,7 +21,8 @@ class FileMapper {
     }
 
     fun toDtoWithHost(e: MediaFile, host: String): FileDTO {
-        val url = "http://$host/images/${e.folder.name}/${e.filename}"
+        val encodedFilename = UriUtils.encodeQueryParam(e.filename, StandardCharsets.UTF_8)
+        val url = "http://$host/images/${e.folder.name}/$encodedFilename"
         val base = BaseFile(url, e.filename, e.width, e.height, e.creationDate, e.lastModified, e.tags.toBaseDto(), e.id)
         return when(e){
             is VideoEntity -> VideoFileDTO(e.duration, base)
@@ -29,7 +32,8 @@ class FileMapper {
     }
 
     fun toSingleDto(e: MediaFile, host: String): FileDTO {
-        val url = "http://$host/images/${e.folder.name}/${e.filename}"
+        val encodedFilename = UriUtils.encodeQueryParam(e.filename, StandardCharsets.UTF_8)
+        val url = "http://$host/images/${e.folder.name}/$encodedFilename"
         val folder = Folder(e.folder.name, "", "", e.folder.files.size, e.folder.id)
         val base = BaseFile(url, e.filename, e.width, e.height, e.creationDate, e.lastModified, e.tags.toBaseDto(), e.id)
         return when(e){

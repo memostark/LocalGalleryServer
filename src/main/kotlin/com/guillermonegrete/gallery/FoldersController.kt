@@ -22,7 +22,9 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.util.UriUtils
 import java.io.File
+import java.nio.charset.StandardCharsets
 
 
 @RestController
@@ -53,7 +55,8 @@ class FoldersController(
         val subFolderPath = "http://$ipAddress/images/$subFolder"
 
         return mediaFolder.files.map {
-            fileMapper.toDto(it, "$subFolderPath/${it.filename}")
+            val encoded = UriUtils.encodeQueryParam(it.filename, StandardCharsets.UTF_8)
+            fileMapper.toDto(it, "$subFolderPath/$encoded")
         }
     }
 
@@ -65,7 +68,8 @@ class FoldersController(
         val subFolderPath = "http://$ipAddress/images/$subFolder"
 
         val finalFiles = filesPage.content.map {
-            fileMapper.toDto(it, "$subFolderPath/${it.filename}")
+            val encodedFilename = UriUtils.encodeQueryParam(it.filename, StandardCharsets.UTF_8)
+            fileMapper.toDto(it, "$subFolderPath/$encodedFilename")
         }
 
         return PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
