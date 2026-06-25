@@ -21,8 +21,9 @@ class FileMapper {
     }
 
     fun toDtoWithHost(e: MediaFile, host: String): FileDTO {
+        val encodedFolder = UriUtils.encodeQueryParam(e.folder.name, StandardCharsets.UTF_8)
         val encodedFilename = UriUtils.encodeQueryParam(e.filename, StandardCharsets.UTF_8)
-        val url = "http://$host/images/${e.folder.name}/$encodedFilename"
+        val url = "http://$host/images/$encodedFolder/$encodedFilename"
         val base = BaseFile(url, e.filename, e.width, e.height, e.creationDate, e.lastModified, e.tags.toBaseDto(), e.id)
         return when(e){
             is VideoEntity -> VideoFileDTO(e.duration, base)
@@ -32,8 +33,9 @@ class FileMapper {
     }
 
     fun toSingleDto(e: MediaFile, host: String): FileDTO {
+        val encodedFolder = UriUtils.encodeQueryParam(e.folder.name, StandardCharsets.UTF_8)
         val encodedFilename = UriUtils.encodeQueryParam(e.filename, StandardCharsets.UTF_8)
-        val url = "http://$host/images/${e.folder.name}/$encodedFilename"
+        val url = "http://$host/images/$encodedFolder/$encodedFilename"
         val folder = Folder(e.folder.name, "", "", e.folder.files.size, e.folder.id)
         val base = BaseFile(url, e.filename, e.width, e.height, e.creationDate, e.lastModified, e.tags.toBaseDto(), e.id)
         return when(e){

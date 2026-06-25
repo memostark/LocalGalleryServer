@@ -52,7 +52,8 @@ class FoldersController(
     fun subFolder(@PathVariable subFolder: String): List<FileDTO>{
 
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder entity for $subFolder not found")
-        val subFolderPath = "http://$ipAddress/images/$subFolder"
+        val encodedFolder = UriUtils.encodeQueryParam(subFolder, StandardCharsets.UTF_8)
+        val subFolderPath = "http://$ipAddress/images/$encodedFolder"
 
         return mediaFolder.files.map {
             val encoded = UriUtils.encodeQueryParam(it.filename, StandardCharsets.UTF_8)
@@ -65,7 +66,8 @@ class FoldersController(
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder path $subFolder not found")
 
         val filesPage = mediaFilesRepo.findAllByFolder(mediaFolder, pageable)
-        val subFolderPath = "http://$ipAddress/images/$subFolder"
+        val encodedFolder = UriUtils.encodeQueryParam(subFolder, StandardCharsets.UTF_8)
+        val subFolderPath = "http://$ipAddress/images/$encodedFolder"
 
         val finalFiles = filesPage.content.map {
             val encodedFilename = UriUtils.encodeQueryParam(it.filename, StandardCharsets.UTF_8)
