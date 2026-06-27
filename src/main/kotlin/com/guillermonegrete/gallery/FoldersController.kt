@@ -8,6 +8,7 @@ import com.guillermonegrete.gallery.data.files.FileInfo
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.PagedFileResponse
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
+import com.guillermonegrete.gallery.data.files.toDto
 import com.guillermonegrete.gallery.data.toDto
 import com.guillermonegrete.gallery.data.toFolder
 import com.guillermonegrete.gallery.repository.MediaFileRepository
@@ -22,9 +23,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import org.springframework.web.util.UriUtils
 import java.io.File
-import java.nio.charset.StandardCharsets
 
 
 @RestController
@@ -50,15 +49,8 @@ class FoldersController(
 
     @GetMapping("/folders/{subFolder}")
     fun subFolder(@PathVariable subFolder: String): List<FileDTO>{
-
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder entity for $subFolder not found")
-        val encodedFolder = UriUtils.encodeQueryParam(subFolder, StandardCharsets.UTF_8)
-        val subFolderPath = "http://$ipAddress/images/$encodedFolder"
-
-        return mediaFolder.files.map {
-            val encoded = UriUtils.encodeQueryParam(it.filename, StandardCharsets.UTF_8)
-            fileMapper.toDto(it, "$subFolderPath/$encoded")
-        }
+        return mediaFolder.files.toDto(subFolder, ipAddress)
     }
 
     @GetMapping("/folders/{subFolder}", params = ["page"])
@@ -66,14 +58,7 @@ class FoldersController(
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder path $subFolder not found")
 
         val filesPage = mediaFilesRepo.findAllByFolder(mediaFolder, pageable)
-        val encodedFolder = UriUtils.encodeQueryParam(subFolder, StandardCharsets.UTF_8)
-        val subFolderPath = "http://$ipAddress/images/$encodedFolder"
-
-        val finalFiles = filesPage.content.map {
-            val encodedFilename = UriUtils.encodeQueryParam(it.filename, StandardCharsets.UTF_8)
-            fileMapper.toDto(it, "$subFolderPath/$encodedFilename")
-        }
-
+        val finalFiles = filesPage.content.toDto(subFolder, ipAddress)
         return PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
     }
 
