@@ -31,6 +31,7 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
@@ -219,7 +220,7 @@ class TagsControllerTest(
         val tagId = 3L
         every { tagsRepository.existsById(tagId) } returns true
         val folderId = 2L
-        every { mediaFolderRepository.existsById(folderId) } returns true
+        every { mediaFolderRepository.findByIdOrNull(folderId) } returns MediaFolder(id = folderId)
         val files = listOf(MediaFile("image.jpg"))
         every { mediaFileRepository.findFilesByTagsIdAndFolderId(tagId, folderId, DEFAULT_PAGEABLE) } returns PageImpl(files, DEFAULT_PAGEABLE, files.size.toLong())
 

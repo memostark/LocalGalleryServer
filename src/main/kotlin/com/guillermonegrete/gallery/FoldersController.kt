@@ -8,6 +8,7 @@ import com.guillermonegrete.gallery.data.files.FileInfo
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.PagedFileResponse
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
+import com.guillermonegrete.gallery.data.files.toDto
 import com.guillermonegrete.gallery.data.toDto
 import com.guillermonegrete.gallery.data.toFolder
 import com.guillermonegrete.gallery.repository.MediaFileRepository
@@ -48,13 +49,8 @@ class FoldersController(
 
     @GetMapping("/folders/{subFolder}")
     fun subFolder(@PathVariable subFolder: String): List<FileDTO>{
-
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder entity for $subFolder not found")
-        val subFolderPath = "http://$ipAddress/images/$subFolder"
-
-        return mediaFolder.files.map {
-            fileMapper.toDto(it, "$subFolderPath/${it.filename}")
-        }
+        return mediaFolder.files.toDto(subFolder, ipAddress)
     }
 
     @GetMapping("/folders/{subFolder}", params = ["page"])
@@ -62,12 +58,7 @@ class FoldersController(
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder path $subFolder not found")
 
         val filesPage = mediaFilesRepo.findAllByFolder(mediaFolder, pageable)
-        val subFolderPath = "http://$ipAddress/images/$subFolder"
-
-        val finalFiles = filesPage.content.map {
-            fileMapper.toDto(it, "$subFolderPath/${it.filename}")
-        }
-
+        val finalFiles = filesPage.content.toDto(subFolder, ipAddress)
         return PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
     }
 
