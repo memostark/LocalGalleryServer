@@ -19,7 +19,7 @@ interface MediaFolderRepository: JpaRepository<MediaFolder, Long>{
      * Returns all media folders by the count of their children files.
      */
     @Query(value = folderDtoSelect + folderAscOrder,
-        countQuery = folderCountQuery,
+        countQuery = folderCount + folderAscOrder,
         nativeQuery = true)
     fun findAllMediaFolderByFileCountAsc(pageable: Pageable): Page<FolderDto>
 
@@ -65,22 +65,22 @@ interface MediaFolderRepository: JpaRepository<MediaFolder, Long>{
     fun findFoldersByTagsIdsAndContaining(tagIds: List<Long>, numberOfTags: Int, name: String, pageable: Pageable): Page<MediaFolder>
 
     @Query(value = folderDtoSelect + folderContainsTags + folderAscOrder,
-        countQuery = folderCountQuery,
+        countQuery = folderCount + folderContainsTags + folderAscOrder,
         nativeQuery = true)
     fun findFoldersByFileCountAndTagsAsc(tagIds: List<Long>, numberOfTags: Int, pageable: Pageable): Page<FolderDto>
 
     @Query(value = folderDtoSelect + folderContainsTags + folderDescOrder,
-        countQuery = folderCountQuery,
+        countQuery = folderCount + folderContainsTags + folderDescOrder,
         nativeQuery = true)
     fun findFoldersByFileCountAndTagsDesc(tagIds: List<Long>, numberOfTags: Int, pageable: Pageable): Page<FolderDto>
 
     @Query(value = folderDtoSelect + folderContainsTags + folderNameContainsAnd + folderAscOrder,
-        countQuery = folderCountQuery,
+        countQuery = folderCount + folderContainsTags + folderNameContainsAnd + folderAscOrder,
         nativeQuery = true)
     fun findFoldersByFileCountAndTagsAndContainingAsc(tagIds: List<Long>, numberOfTags: Int, name: String, pageable: Pageable): Page<FolderDto>
 
     @Query(value = folderDtoSelect + folderContainsTags + folderNameContainsAnd + folderDescOrder,
-        countQuery = folderCountQuery,
+        countQuery = folderCount + folderContainsTags + folderNameContainsAnd + folderDescOrder,
         nativeQuery = true)
     fun findFoldersByFileCountAndTagsAndContainingDesc(tagIds: List<Long>, numberOfTags: Int, name: String, pageable: Pageable): Page<FolderDto>
 }
@@ -88,6 +88,8 @@ interface MediaFolderRepository: JpaRepository<MediaFolder, Long>{
 private const val folderDtoSelect = "SELECT name, " +
         "IFNULL((SELECT filename FROM media_file where media_file.id = cover_file_id), (SELECT filename FROM media_file where media_file.folder_id = media_folder.id LIMIT 1)) as coverUrl, " + //
         "(SELECT count(folder_id) FROM media_file where folder_id = media_folder.id) as count, id FROM media_folder "
+
+private const val folderCount = "SELECT count(id), (SELECT count(folder_id) FROM media_file where folder_id = media_folder.id) as count FROM media_folder "
 
 private const val folderAscOrder = "group by media_folder.id order by count asc, media_folder.id"
 
