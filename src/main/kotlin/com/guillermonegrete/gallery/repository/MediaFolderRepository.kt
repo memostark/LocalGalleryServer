@@ -19,7 +19,7 @@ interface MediaFolderRepository: JpaRepository<MediaFolder, Long>{
      * Returns all media folders by the count of their children files.
      */
     @Query(value = folderDtoSelect + folderAscOrder,
-        countQuery = folderCount + folderAscOrder,
+        countQuery = folderCountQuery,
         nativeQuery = true)
     fun findAllMediaFolderByFileCountAsc(pageable: Pageable): Page<FolderDto>
 
@@ -33,14 +33,14 @@ interface MediaFolderRepository: JpaRepository<MediaFolder, Long>{
      */
     @Query(
         value = folderDtoSelect + folderNameContains + folderAscOrder,
-        countQuery = folderCountQuery,
+        countQuery = folderCountQuery + folderNameContains,
         nativeQuery = true
     )
     fun findByNameContainingAndFileCountAsc(name: String, pageable: Pageable): Page<FolderDto>
 
     @Query(
         value = folderDtoSelect + folderNameContains + folderDescOrder ,
-        countQuery = folderCountQuery,
+        countQuery = folderCountQuery + folderNameContains,
         nativeQuery = true
     )
     fun findByNameContainingAndFileCountDesc(name: String, pageable: Pageable): Page<FolderDto>
@@ -65,22 +65,22 @@ interface MediaFolderRepository: JpaRepository<MediaFolder, Long>{
     fun findFoldersByTagsIdsAndContaining(tagIds: List<Long>, numberOfTags: Int, name: String, pageable: Pageable): Page<MediaFolder>
 
     @Query(value = folderDtoSelect + folderContainsTags + folderAscOrder,
-        countQuery = folderCount + folderContainsTags + folderAscOrder,
+        countQuery = folderCountQuery + folderContainsTags,
         nativeQuery = true)
     fun findFoldersByFileCountAndTagsAsc(tagIds: List<Long>, numberOfTags: Int, pageable: Pageable): Page<FolderDto>
 
     @Query(value = folderDtoSelect + folderContainsTags + folderDescOrder,
-        countQuery = folderCount + folderContainsTags + folderDescOrder,
+        countQuery = folderCountQuery + folderContainsTags,
         nativeQuery = true)
     fun findFoldersByFileCountAndTagsDesc(tagIds: List<Long>, numberOfTags: Int, pageable: Pageable): Page<FolderDto>
 
     @Query(value = folderDtoSelect + folderContainsTags + folderNameContainsAnd + folderAscOrder,
-        countQuery = folderCount + folderContainsTags + folderNameContainsAnd + folderAscOrder,
+        countQuery = folderCountQuery + folderContainsTags + folderNameContainsAnd,
         nativeQuery = true)
     fun findFoldersByFileCountAndTagsAndContainingAsc(tagIds: List<Long>, numberOfTags: Int, name: String, pageable: Pageable): Page<FolderDto>
 
     @Query(value = folderDtoSelect + folderContainsTags + folderNameContainsAnd + folderDescOrder,
-        countQuery = folderCount + folderContainsTags + folderNameContainsAnd + folderDescOrder,
+        countQuery = folderCountQuery + folderContainsTags + folderNameContainsAnd,
         nativeQuery = true)
     fun findFoldersByFileCountAndTagsAndContainingDesc(tagIds: List<Long>, numberOfTags: Int, name: String, pageable: Pageable): Page<FolderDto>
 }
@@ -89,11 +89,9 @@ private const val folderDtoSelect = "SELECT name, " +
         "IFNULL((SELECT filename FROM media_file where media_file.id = cover_file_id), (SELECT filename FROM media_file where media_file.folder_id = media_folder.id LIMIT 1)) as coverUrl, " + //
         "(SELECT count(folder_id) FROM media_file where folder_id = media_folder.id) as count, id FROM media_folder "
 
-private const val folderCount = "SELECT count(id), (SELECT count(folder_id) FROM media_file where folder_id = media_folder.id) as count FROM media_folder "
+private const val folderAscOrder = "order by count asc, media_folder.id"
 
-private const val folderAscOrder = "group by media_folder.id order by count asc, media_folder.id"
-
-private const val folderDescOrder = "group by media_folder.id order by count desc, media_folder.id"
+private const val folderDescOrder = "order by count desc, media_folder.id"
 
 private const val folderNameContains = "where UPPER(media_folder.name) like CONCAT('%',UPPER(:name),'%') "
 
@@ -104,7 +102,7 @@ private const val folderContainsTags = """
     join folder_tags ON tag_entity.id = folder_tags.tag_id
     where media_folder.id = folder_tags.folder_id and folder_tags.tag_id in (:tagIds)) """
 
-private const val folderCountQuery = "SELECT count(*) FROM media_folder"
+private const val folderCountQuery = "SELECT count(*) FROM media_folder "
 
 interface FolderDto {
     val name:String
