@@ -1,19 +1,17 @@
 package com.guillermonegrete.gallery
 
+import com.guillermonegrete.gallery.common.ErrorResponse
 import com.guillermonegrete.gallery.config.NetworkConfig
-import com.guillermonegrete.gallery.data.Folder
-import com.guillermonegrete.gallery.data.PagedFolderResponse
-import com.guillermonegrete.gallery.data.SimplePage
+import com.guillermonegrete.gallery.data.*
 import com.guillermonegrete.gallery.data.files.FileInfo
 import com.guillermonegrete.gallery.data.files.FileMapper
 import com.guillermonegrete.gallery.data.files.PagedFileResponse
 import com.guillermonegrete.gallery.data.files.dto.FileDTO
 import com.guillermonegrete.gallery.data.files.toDto
-import com.guillermonegrete.gallery.data.toDto
-import com.guillermonegrete.gallery.data.toFolder
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.TagsRepository
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
@@ -23,6 +21,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.ExceptionHandler
 import java.io.File
 
 
@@ -89,7 +88,7 @@ class FoldersController(
 
     @PostMapping("/folders")
     fun getFoldersByTags(@RequestBody ids: List<Long>, @RequestParam(required = false) query: String?, pageable: Pageable): PagedFolderResponse{
-        if(ids.isEmpty()) throw Exception("The tag list is empty")
+        if(ids.isEmpty()) throw EmptyTagListException()
 
         val finalIds = ids.filter { tagRepo.existsById(it) }
         if (finalIds.isEmpty()) return PagedFolderResponse(getFolderName(), SimplePage())
@@ -171,5 +170,30 @@ class FoldersController(
             val paths = basePath.split("\\", "/")
             paths.last()
         }
+    }
+}
+
+class EmptyTagListException(
+    message: String = "The tag list is empty",
+    val errorDetails: Map<String, String>? = null
+) : RuntimeException(message)
+
+
+
+@RestControllerAdvice
+class ExceptionHandler {
+
+    private val log = LoggerFactory.getLogger(ExceptionHandler::class.java)
+
+    @ExceptionHandler(EmptyTagListException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    fun handleEmptyTagListException(ex: EmptyTagListException): ErrorResponse {
+        log.error("Empty tag list exception occurred", ex)
+
+        return ErrorResponse(
+            status = HttpStatus.BAD_REQUEST.value(),
+            error = ex.message ?: "The tag list is empty",
+            details = ex.errorDetails
+        )
     }
 }
