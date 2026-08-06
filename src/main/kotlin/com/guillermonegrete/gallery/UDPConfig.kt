@@ -3,8 +3,8 @@ package com.guillermonegrete.gallery
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.integration.dsl.IntegrationFlow
-import org.springframework.integration.ip.udp.UnicastReceivingChannelAdapter
-import org.springframework.integration.ip.udp.UnicastSendingMessageHandler
+import org.springframework.integration.ip.udp.inbound.UnicastReceivingChannelAdapter
+import org.springframework.integration.ip.udp.outbound.UnicastSendingMessageHandler
 import org.springframework.integration.support.MessageBuilder
 import org.springframework.messaging.Message
 import org.springframework.stereotype.Service
