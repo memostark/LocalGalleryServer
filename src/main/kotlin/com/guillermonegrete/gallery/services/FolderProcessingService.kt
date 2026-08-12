@@ -7,7 +7,9 @@ import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.thumbnails.THUMBNAILS_FOLDER
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 /**
  * Service that saves the media files in the database of the folders in the folder path.
@@ -19,11 +21,20 @@ class FolderProcessingService(
     private val folderEntityRepo: MediaFolderRepository,
     private val fileProvider: FileProvider,
     private val service: FolderFetchingService,
+    private val redisTemplate: StringRedisTemplate,
 ) {
 
+    @Transactional
     fun processFolder(basePath: String){
 
         val folders = folderRepository.getFolders(basePath)
+        if(folders.isEmpty()) {
+            println("Empty base folder")
+            return
+        }
+
+        var foldersChanged = false
+        var filesChanged = false
         for(folder in folders){
             var mediaFolder = service.getMediaFolder(folder)
             createThumbnailFolder(folder)
@@ -31,6 +42,7 @@ class FolderProcessingService(
             if(mediaFolder == null){
                 mediaFolder = MediaFolder(folder)
                 val savedFolder = folderEntityRepo.save(mediaFolder)
+                foldersChanged = true
                 println("Found new folder: $folder")
 
                 val files = folderRepository.getMedia("$basePath/$folder")
@@ -39,6 +51,7 @@ class FolderProcessingService(
                     file.folder = savedFolder
                     try {
                         fileEntityRepo.save(file)
+                        filesChanged = true
                     } catch (e: DataIntegrityViolationException){
                         println("Duplicate file in database ${file.filename}. Message: ${e.message}")
                     }
@@ -55,6 +68,7 @@ class FolderProcessingService(
                     imageFile.folder = mediaFolder
                     try {
                         fileEntityRepo.save(imageFile)
+                        filesChanged = true
                     } catch (e: DataIntegrityViolationException){
                         println("Duplicate file in database $filename. Message: ${e.message}")
                     }
@@ -62,6 +76,8 @@ class FolderProcessingService(
             }
             println("Processed $folder...")
         }
+        if (foldersChanged) redisTemplate.opsForValue().increment("cache:version:folders")
+        if (filesChanged) redisTemplate.opsForValue().increment("cache:version:files")
         println("All folders processed")
     }
 
