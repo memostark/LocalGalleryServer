@@ -17,11 +17,14 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.CacheControl
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.bind.annotation.ExceptionHandler
+import org.springframework.web.context.request.WebRequest
 import java.io.File
 
 
@@ -30,7 +33,8 @@ class FoldersController(
     val mediaFolderRepo: MediaFolderRepository,
     val mediaFilesRepo: MediaFileRepository,
     val tagRepo: TagsRepository,
-    val fileMapper: FileMapper
+    val fileMapper: FileMapper,
+    private val redisTemplate: StringRedisTemplate,
 ){
 
     @Value("\${base.path}")
@@ -40,10 +44,25 @@ class FoldersController(
     private val ipAddress: String by lazy { networkConfig.getLocalIpAddress() }
 
     @GetMapping("/folders")
-    fun folders(@RequestParam(required = false) query: String?, pageable: Pageable): PagedFolderResponse{
+    fun folders(
+        @RequestParam(required = false) query: String?,
+        pageable: Pageable,
+        request: WebRequest,
+    ): ResponseEntity<PagedFolderResponse>?{
+        val currentEtag = getFolderVersionToken()
+        val pageEtag = "\"$currentEtag-p${pageable.pageNumber}-s${pageable.pageSize}\""
+
+        // Check if the Android client sent this exact ETag in 'If-None-Match'
+        if (request.checkNotModified(pageEtag)) {
+            // Returns HTTP 304 Not Modified
+            return null
+        }
         val folders = if(query == null) getFolderPage(pageable) else getFolderPage(query, pageable)
         val page = SimplePage(folders.content, folders.totalPages, folders.totalElements.toInt())
-        return PagedFolderResponse(getFolderName(), page)
+        return ResponseEntity.ok()
+            .cacheControl(CacheControl.noCache()) // Tells Android to always validate with server
+            .eTag(pageEtag)
+            .body(PagedFolderResponse(getFolderName(), page))
     }
 
     @GetMapping("/folders/{subFolder}")
@@ -171,14 +190,17 @@ class FoldersController(
             paths.last()
         }
     }
+
+    fun getFolderVersionToken(): String {
+        val version = redisTemplate.opsForValue().get("cache:version:folders")
+        return if (version != null) "v$version" else "v1"
+    }
 }
 
 class EmptyTagListException(
     message: String = "The tag list is empty",
     val errorDetails: Map<String, String>? = null
 ) : RuntimeException(message)
-
-
 
 @RestControllerAdvice
 class ExceptionHandler {
