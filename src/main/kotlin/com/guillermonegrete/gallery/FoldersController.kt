@@ -50,10 +50,9 @@ class FoldersController(
         request: WebRequest,
     ): ResponseEntity<PagedFolderResponse>?{
         val currentEtag = getFolderVersionToken()
-        val pageEtag = "\"$currentEtag-p${pageable.pageNumber}-s${pageable.pageSize}\""
 
         // Check if the Android client sent this exact ETag in 'If-None-Match'
-        if (request.checkNotModified(pageEtag)) {
+        if (request.checkNotModified(currentEtag)) {
             // Returns HTTP 304 Not Modified
             return null
         }
@@ -61,7 +60,7 @@ class FoldersController(
         val page = SimplePage(folders.content, folders.totalPages, folders.totalElements.toInt())
         return ResponseEntity.ok()
             .cacheControl(CacheControl.noCache()) // Tells Android to always validate with server
-            .eTag(pageEtag)
+            .eTag(currentEtag)
             .body(PagedFolderResponse(getFolderName(), page))
     }
 
