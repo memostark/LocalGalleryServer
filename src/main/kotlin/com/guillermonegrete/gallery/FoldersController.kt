@@ -57,11 +57,10 @@ class FoldersController(
             return null
         }
         val folders = if(query == null) getFolderPage(pageable) else getFolderPage(query, pageable)
-        val page = SimplePage(folders.content, folders.totalPages, folders.totalElements.toInt())
         return ResponseEntity.ok()
             .cacheControl(CacheControl.noCache()) // Tells Android to always validate with server
             .eTag(currentEtag)
-            .body(PagedFolderResponse(getFolderName(), page))
+            .body(generatePagedFolderResponse(folders))
     }
 
     @GetMapping("/folders/{subFolder}")
@@ -145,8 +144,7 @@ class FoldersController(
             }
         }
 
-        val page  = SimplePage(foldersPage.content, foldersPage.totalPages, foldersPage.totalElements.toInt())
-        return PagedFolderResponse(getFolderName(), page)
+        return generatePagedFolderResponse(foldersPage)
     }
 
     /**
@@ -188,6 +186,12 @@ class FoldersController(
             val paths = basePath.split("\\", "/")
             paths.last()
         }
+    }
+
+    fun generatePagedFolderResponse(foldersPage: Page<Folder>): PagedFolderResponse {
+        val nextPage = if (foldersPage.hasNext()) foldersPage.nextPageable().pageNumber else null
+        val page = SimplePage(foldersPage.content, foldersPage.totalPages, foldersPage.totalElements.toInt(), nextPage)
+        return PagedFolderResponse(getFolderName(), page)
     }
 
     fun getFolderVersionToken(): String {
