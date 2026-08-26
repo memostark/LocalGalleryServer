@@ -50,19 +50,17 @@ class FoldersController(
         request: WebRequest,
     ): ResponseEntity<PagedFolderResponse>?{
         val currentEtag = getFolderVersionToken()
-        val pageEtag = "\"$currentEtag-p${pageable.pageNumber}-s${pageable.pageSize}\""
 
         // Check if the Android client sent this exact ETag in 'If-None-Match'
-        if (request.checkNotModified(pageEtag)) {
+        if (request.checkNotModified(currentEtag)) {
             // Returns HTTP 304 Not Modified
             return null
         }
         val folders = if(query == null) getFolderPage(pageable) else getFolderPage(query, pageable)
-        val page = SimplePage(folders.content, folders.totalPages, folders.totalElements.toInt())
         return ResponseEntity.ok()
             .cacheControl(CacheControl.noCache()) // Tells Android to always validate with server
-            .eTag(pageEtag)
-            .body(PagedFolderResponse(getFolderName(), page))
+            .eTag(currentEtag)
+            .body(generatePagedFolderResponse(folders))
     }
 
     @GetMapping("/folders/{subFolder}")
@@ -146,8 +144,7 @@ class FoldersController(
             }
         }
 
-        val page  = SimplePage(foldersPage.content, foldersPage.totalPages, foldersPage.totalElements.toInt())
-        return PagedFolderResponse(getFolderName(), page)
+        return generatePagedFolderResponse(foldersPage)
     }
 
     /**
@@ -189,6 +186,12 @@ class FoldersController(
             val paths = basePath.split("\\", "/")
             paths.last()
         }
+    }
+
+    fun generatePagedFolderResponse(foldersPage: Page<Folder>): PagedFolderResponse {
+        val nextPage = if (foldersPage.hasNext()) foldersPage.nextPageable().pageNumber else null
+        val page = SimplePage(foldersPage.content, foldersPage.totalPages, foldersPage.totalElements.toInt(), nextPage)
+        return PagedFolderResponse(getFolderName(), page)
     }
 
     fun getFolderVersionToken(): String {
