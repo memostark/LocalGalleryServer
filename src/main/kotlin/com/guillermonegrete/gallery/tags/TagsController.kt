@@ -18,6 +18,7 @@ import com.guillermonegrete.gallery.tags.data.TagRequest
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Pageable
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -32,6 +33,7 @@ class TagsController(
     private val filesRepo: MediaFileRepository,
     private val folderRepo: MediaFolderRepository,
     private val fileMapper: FileMapper,
+    private val redisTemplate: StringRedisTemplate,
 ) {
 
     @Autowired
@@ -196,12 +198,14 @@ class TagsController(
                 .orElseThrow { Exception("Folder tag with id $tagId not found") }
             folder.addTag(savedTag)
             folderRepo.save(folder)
+            invalidateTagCache(savedTag.id)
             return ResponseEntity(savedTag, HttpStatus.OK)
         }
 
         val completeTag = folderTagsRepo.findByName(tag.name) ?: TagFolder(tag.name, id = tag.id)
         folder.addTag(completeTag)
-        folderTagsRepo.save(completeTag)
+        val addedTag = folderTagsRepo.save(completeTag)
+        invalidateTagCache(addedTag.id)
         return ResponseEntity(completeTag, HttpStatus.OK)
     }
 
@@ -209,11 +213,13 @@ class TagsController(
     fun addTagToFolders(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<Folder>> {
         val tag = folderTagsRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
 
-        val files = folderRepo.findByIdIn(fileIds)
+        val files = folderRepo.findByIdIn(fileIds).filter { it.addTag(tag) }
 
-        val updatedFiles = files.filter { it.addTag(tag) }
-        folderRepo.saveAll(files)
-        val fileDTOs = updatedFiles.map { it.toDto(ipAddress) }
+        val updatedFiles = folderRepo.saveAll(files)
+        val fileDTOs = updatedFiles.map {
+            invalidateTagCache(it.id)
+            it.toDto(ipAddress)
+        }
         return ResponseEntity(fileDTOs, HttpStatus.OK)
     }
 
@@ -225,6 +231,7 @@ class TagsController(
 
         tags.forEach { file.addTag(it) }
         folderRepo.save(file)
+        tags.forEach { invalidateTagCache(it.id) }
         return ResponseEntity(tags, HttpStatus.OK)
     }
 
@@ -243,6 +250,7 @@ class TagsController(
             .orElseThrow { RuntimeException("Folder not found with id = $folderId") }
         folder.removeTag(tagId)
         folderRepo.save(folder)
+        invalidateTagCache(folderId)
         return ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
@@ -299,6 +307,11 @@ class TagsController(
     fun deleteTag(@PathVariable("id") id: Long): ResponseEntity<HttpStatus> {
         tagRepo.deleteById(id)
         return ResponseEntity(HttpStatus.NO_CONTENT)
+    }
+
+    fun invalidateTagCache(tagId: Long) {
+        val redisKey = "cache:version:tag:$tagId"
+        redisTemplate.opsForValue().increment(redisKey)
     }
 
     data class FilterTagsRequest(
