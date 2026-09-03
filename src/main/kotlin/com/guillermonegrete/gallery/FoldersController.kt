@@ -104,11 +104,28 @@ class FoldersController(
     }
 
     @PostMapping("/folders")
-    fun getFoldersByTags(@RequestBody ids: List<Long>, @RequestParam(required = false) query: String?, pageable: Pageable): PagedFolderResponse{
+    fun getFoldersByTags(
+        @RequestBody ids: List<Long>,
+        @RequestParam(required = false) query: String?,
+        pageable: Pageable,
+        request: WebRequest,
+    ): ResponseEntity<PagedFolderResponse>? {
         if(ids.isEmpty()) throw EmptyTagListException()
 
+        val sortedIds = ids.sorted()
+        val versions = sortedIds.map { id ->
+            redisTemplate.opsForValue().get("cache:version:tag:$id") ?: "1"
+        }
+
+        // 3. Create a unique signature, e.g., "7-v1_8-v4_12-v2" -> hash it for brevity
+        val rawSignature = sortedIds.zip(versions).joinToString("_") { "${it.first}-v${it.second}" }
+
+        if (request.checkNotModified(rawSignature)) {
+            return null // 304 Not Modified
+        }
+
         val finalIds = ids.filter { tagRepo.existsById(it) }
-        if (finalIds.isEmpty()) return PagedFolderResponse(getFolderName(), SimplePage())
+        if (finalIds.isEmpty()) return ResponseEntity(PagedFolderResponse(getFolderName(), SimplePage()), HttpStatus.OK)
 
         val sort = pageable.sort.firstOrNull()
         val foldersPage = if (query != null) {
@@ -144,7 +161,7 @@ class FoldersController(
             }
         }
 
-        return generatePagedFolderResponse(foldersPage)
+        return ResponseEntity(generatePagedFolderResponse(foldersPage), HttpStatus.OK)
     }
 
     /**
