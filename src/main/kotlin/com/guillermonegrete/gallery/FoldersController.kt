@@ -22,6 +22,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.CacheControl
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.util.DigestUtils
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.context.request.WebRequest
@@ -57,10 +58,7 @@ class FoldersController(
             return null
         }
         val folders = if(query == null) getFolderPage(pageable) else getFolderPage(query, pageable)
-        return ResponseEntity.ok()
-            .cacheControl(CacheControl.noCache()) // Tells Android to always validate with server
-            .eTag(currentEtag)
-            .body(generatePagedFolderResponse(folders))
+        return generatePagedFolderResponse(folders, currentEtag)
     }
 
     @GetMapping("/folders/{subFolder}")
@@ -117,15 +115,16 @@ class FoldersController(
             redisTemplate.opsForValue().get("cache:version:tag:$id") ?: "1"
         }
 
-        // 3. Create a unique signature, e.g., "7-v1_8-v4_12-v2" -> hash it for brevity
+        // Create a unique signature, e.g., "7-v1_8-v4_12-v2" -> hash it for brevity
         val rawSignature = sortedIds.zip(versions).joinToString("_") { "${it.first}-v${it.second}" }
+        val etag = "\"${DigestUtils.md5DigestAsHex(rawSignature.toByteArray(Charsets.UTF_8))}\""
 
-        if (request.checkNotModified(rawSignature)) {
-            return null // 304 Not Modified
+        if (request.checkNotModified(etag)) {
+            return null
         }
 
         val finalIds = ids.filter { tagRepo.existsById(it) }
-        if (finalIds.isEmpty()) return ResponseEntity(PagedFolderResponse(getFolderName(), SimplePage()), HttpStatus.OK)
+        if (finalIds.isEmpty()) return generatePagedFolderResponse(Page.empty(), etag)
 
         val sort = pageable.sort.firstOrNull()
         val foldersPage = if (query != null) {
@@ -161,7 +160,7 @@ class FoldersController(
             }
         }
 
-        return ResponseEntity(generatePagedFolderResponse(foldersPage), HttpStatus.OK)
+        return generatePagedFolderResponse(foldersPage, etag)
     }
 
     /**
@@ -205,10 +204,13 @@ class FoldersController(
         }
     }
 
-    fun generatePagedFolderResponse(foldersPage: Page<Folder>): PagedFolderResponse {
+    fun generatePagedFolderResponse(foldersPage: Page<Folder>, etag: String): ResponseEntity<PagedFolderResponse> {
         val nextPage = if (foldersPage.hasNext()) foldersPage.nextPageable().pageNumber else null
         val page = SimplePage(foldersPage.content, foldersPage.totalPages, foldersPage.totalElements.toInt(), nextPage)
-        return PagedFolderResponse(getFolderName(), page)
+        return ResponseEntity.ok()
+            .cacheControl(CacheControl.noCache()) // Tells Android to always validate with server
+            .eTag(etag)
+            .body(PagedFolderResponse(getFolderName(), page))
     }
 
     fun getFolderVersionToken(): String {
