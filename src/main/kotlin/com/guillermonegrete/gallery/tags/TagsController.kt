@@ -18,10 +18,12 @@ import com.guillermonegrete.gallery.tags.data.TagRequest
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Pageable
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.time.Duration
 
 
 @RestController
@@ -32,6 +34,7 @@ class TagsController(
     private val filesRepo: MediaFileRepository,
     private val folderRepo: MediaFolderRepository,
     private val fileMapper: FileMapper,
+    private val redisTemplate: StringRedisTemplate,
 ) {
 
     @Autowired
@@ -196,41 +199,46 @@ class TagsController(
                 .orElseThrow { Exception("Folder tag with id $tagId not found") }
             folder.addTag(savedTag)
             folderRepo.save(folder)
+            invalidateTagCache(savedTag.id)
             return ResponseEntity(savedTag, HttpStatus.OK)
         }
 
         val completeTag = folderTagsRepo.findByName(tag.name) ?: TagFolder(tag.name, id = tag.id)
         folder.addTag(completeTag)
-        folderTagsRepo.save(completeTag)
+        val addedTag = folderTagsRepo.save(completeTag)
+        invalidateTagCache(addedTag.id)
         return ResponseEntity(completeTag, HttpStatus.OK)
     }
 
     @PostMapping("tags/{id}/folders")
-    fun addTagToFolders(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<Folder>> {
+    fun addTagToFolders(@PathVariable id: Long, @RequestBody folderIds: List<Long>): ResponseEntity<List<Folder>> {
         val tag = folderTagsRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
 
-        val files = folderRepo.findByIdIn(fileIds)
+        val folders = folderRepo.findByIdIn(folderIds).filter { it.addTag(tag) }
 
-        val updatedFiles = files.filter { it.addTag(tag) }
-        folderRepo.saveAll(files)
-        val fileDTOs = updatedFiles.map { it.toDto(ipAddress) }
-        return ResponseEntity(fileDTOs, HttpStatus.OK)
+        val updatedFolders = folderRepo.saveAll(folders)
+        if (folders.isNotEmpty()) invalidateTagCache(id)
+        val folderDTOs = updatedFolders.map { it.toDto(ipAddress) }
+        return ResponseEntity(folderDTOs, HttpStatus.OK)
     }
 
     @PostMapping("folders/{id}/multitag")
     fun addTagsToFolder(@PathVariable id: Long, @RequestBody tagIds: List<Long>): ResponseEntity<List<TagEntity>> {
-        val file = folderRepo.findByIdOrNull(id)  ?: throw RuntimeException("File id $id not found")
+        val folder = folderRepo.findByIdOrNull(id)  ?: throw RuntimeException("Folder id $id not found")
 
         val tags = folderTagsRepo.findByIdIn(tagIds)
 
-        tags.forEach { file.addTag(it) }
-        folderRepo.save(file)
+        tags.forEach { folder.addTag(it) }
+        folderRepo.save(folder)
+        tags.forEach { invalidateTagCache(it.id) }
         return ResponseEntity(tags, HttpStatus.OK)
     }
 
     @DeleteMapping("tags/folders/{id}")
     fun deleteFolderTag(@PathVariable("id") id: Long): ResponseEntity<HttpStatus> {
         folderTagsRepo.deleteById(id)
+        invalidateTagCache(id)
+        redisTemplate.expire("cache:version:tag:$id", Duration.ofDays(30))
         return ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
@@ -243,6 +251,7 @@ class TagsController(
             .orElseThrow { RuntimeException("Folder not found with id = $folderId") }
         folder.removeTag(tagId)
         folderRepo.save(folder)
+        invalidateTagCache(tagId)
         return ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
@@ -299,6 +308,11 @@ class TagsController(
     fun deleteTag(@PathVariable("id") id: Long): ResponseEntity<HttpStatus> {
         tagRepo.deleteById(id)
         return ResponseEntity(HttpStatus.NO_CONTENT)
+    }
+
+    fun invalidateTagCache(tagId: Long) {
+        val redisKey = "cache:version:tag:$tagId"
+        redisTemplate.opsForValue().increment(redisKey)
     }
 
     data class FilterTagsRequest(
