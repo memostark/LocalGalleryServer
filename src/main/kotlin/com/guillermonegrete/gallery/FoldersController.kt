@@ -107,7 +107,7 @@ class FoldersController(
         @RequestParam(required = false) query: String?,
         pageable: Pageable,
         request: WebRequest,
-    ): ResponseEntity<PagedFolderResponse>? {
+    ): ResponseEntity<PagedFolderResponse> {
         if(ids.isEmpty()) throw EmptyTagListException()
 
         val sortedIds = ids.sorted()
@@ -120,7 +120,7 @@ class FoldersController(
         val etag = "\"${DigestUtils.md5DigestAsHex(rawSignature.toByteArray(Charsets.UTF_8))}\""
 
         if (request.checkNotModified(etag)) {
-            return null
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).build()
         }
 
         val finalIds = ids.filter { tagRepo.existsById(it) }
