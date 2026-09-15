@@ -73,6 +73,9 @@ class FolderProcessingService(
                         println("Duplicate file in database $filename. Message: ${e.message}")
                     }
                 }
+                // If file count changed
+                if (databaseFileNames.size != filenames.size)
+                    redisTemplate.opsForValue().increment("cache:version:folders")
             }
             println("Processed $folder...")
         }

@@ -95,9 +95,11 @@ class FoldersController(
         val folder = mediaFolderRepo.findByIdOrNull(id) ?: throw RuntimeException("Folder id $id not found")
         val file = mediaFilesRepo.findByIdOrNull(fileId) ?: throw RuntimeException("File id $fileId not found")
 
+        val previousFileId = folder.coverFile?.id
         folder.coverFile = file
 
         val savedFolder = mediaFolderRepo.save(folder).toDto(file.filename, ipAddress)
+        if (previousFileId != fileId) redisTemplate.opsForValue().increment("cache:version:folders")
         return ResponseEntity(savedFolder, HttpStatus.OK)
     }
 
