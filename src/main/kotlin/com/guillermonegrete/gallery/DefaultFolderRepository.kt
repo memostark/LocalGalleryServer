@@ -21,11 +21,11 @@ class DefaultFolderRepository(
     private val supportedVideo = setOf("mp4", "webm")
 
     override fun getFolders(path: String): List<String> {
-        return File(path).listFiles { file -> file.isDirectory }?.map { it.name } ?: emptyList()
+        return File(path).listFiles(File::isDirectory)?.map { it.name } ?: emptyList()
     }
 
     override fun getImageNames(folder: String): Set<String> {
-        return File(folder).listFiles()?.map { it.name }?.toSet() ?: emptySet()
+        return File(folder).listFiles(File::isFile)?.map { it.name }?.toSet() ?: emptySet()
     }
 
 
@@ -35,12 +35,12 @@ class DefaultFolderRepository(
     }
 
     override fun getMedia(folder: String): List<MediaFile> {
-        return File(folder).listFiles()?.mapNotNull { file -> getMediaFile(file) } ?: emptyList()
+        return File(folder).listFiles(File::isFile)?.mapNotNull { file -> getMediaFile(file) } ?: emptyList()
     }
 
     override fun createFolder(path: String): Boolean {
         val folder = File(path)
-        return if (!folder.exists()) folder.mkdir() else false
+        return !folder.exists() && folder.mkdir()
     }
 
     private fun getSuffix(imgFile: File): String?{
