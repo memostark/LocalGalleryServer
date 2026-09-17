@@ -74,8 +74,7 @@ class FolderProcessingService(
                     }
                 }
                 // If file count changed
-                if (databaseFileNames.size != filenames.size)
-                    redisTemplate.opsForValue().increment("cache:version:folders")
+                if (databaseFileNames.size != filenames.size) foldersChanged = true
             }
             println("Processed $folder...")
         }
