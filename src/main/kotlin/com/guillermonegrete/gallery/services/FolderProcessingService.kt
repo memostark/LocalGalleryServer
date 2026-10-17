@@ -35,11 +35,11 @@ class FolderProcessingService(
 
         var foldersChanged = false
         var filesChanged = false
-        for(folder in folders){
+        for(folder in folders) {
             var mediaFolder = service.getMediaFolder(folder)
             createThumbnailFolder(folder)
 
-            if(mediaFolder == null){
+            if (mediaFolder == null) {
                 mediaFolder = MediaFolder(folder)
                 val savedFolder = folderEntityRepo.save(mediaFolder)
                 foldersChanged = true
@@ -56,10 +56,13 @@ class FolderProcessingService(
                         println("Duplicate file in database ${file.filename}. Message: ${e.message}")
                     }
                 }
-            }else{
+                redisTemplate.opsForValue().increment("cache:version:files:folder:${mediaFolder.id}")
+            } else {
                 val databaseFileNames = mediaFolder.files.map { it.filename }.toSet()
 
                 val filenames = folderRepository.getImageNames("$basePath/$folder")
+
+                var currentFilesChanged = false
 
                 for(filename in filenames){
                     if(databaseFileNames.contains(filename)) continue
@@ -69,12 +72,14 @@ class FolderProcessingService(
                     try {
                         fileEntityRepo.save(imageFile)
                         filesChanged = true
+                        currentFilesChanged = true
                     } catch (e: DataIntegrityViolationException){
                         println("Duplicate file in database $filename. Message: ${e.message}")
                     }
                 }
                 // If file count changed
                 if (databaseFileNames.size != filenames.size) foldersChanged = true
+                if (currentFilesChanged) redisTemplate.opsForValue().increment("cache:version:files:folder:${mediaFolder.id}")
             }
             println("Processed $folder...")
         }

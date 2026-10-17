@@ -15,6 +15,7 @@ import com.guillermonegrete.gallery.tags.data.TagEntity
 import com.guillermonegrete.gallery.tags.data.TagFile
 import com.guillermonegrete.gallery.tags.data.TagFolder
 import com.guillermonegrete.gallery.tags.data.TagRequest
+import io.swagger.v3.oas.annotations.Operation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Pageable
@@ -116,6 +117,11 @@ class TagsController(
         return ResponseEntity(PagedFileResponse(page), HttpStatus.OK)
     }
 
+    @Deprecated(message = "Moved to FoldersController. Use GET /files instead of POST.")
+    @Operation(
+        deprecated = true,
+        description = "Replaced by GET /files. Send the tag IDs using query parameters instead of the body.",
+    )
     @PostMapping("/files")
     fun getFilesByTags(@RequestBody ids: FilterTagsRequest, pageable: Pageable): ResponseEntity<PagedFileResponse>{
         val fileIds = ids.fileTagIds.filter { fileTagsRepo.existsById(it) }
@@ -133,7 +139,10 @@ class TagsController(
         val finalFiles = filesPage.content.map { fileMapper.toSingleDto(it, ipAddress) }
 
         val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
-        return ResponseEntity(PagedFileResponse(page), HttpStatus.OK)
+        return ResponseEntity.status(HttpStatus.OK)
+            .header("Deprecation", "true")
+            .header("Link", "</files>; rel=\"successor-version\"")
+            .body(PagedFileResponse(page))
     }
 
     @PostMapping("tags/{id}/files")

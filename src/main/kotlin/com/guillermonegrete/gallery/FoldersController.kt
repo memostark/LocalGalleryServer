@@ -77,14 +77,54 @@ class FoldersController(
     }
 
     @GetMapping("/files")
-    fun files(pageable: Pageable): PagedFileResponse {
-        val filesPage = mediaFilesRepo.findAll(pageable)
+    fun files(
+        @RequestParam(required = false) fileTagIds: List<Long>?,
+        @RequestParam(required = false) folderTagIds: List<Long>?,
+        pageable: Pageable,
+        request: WebRequest,
+    ): ResponseEntity<PagedFileResponse>? {
+
+        val noTags = fileTagIds.isNullOrEmpty() && folderTagIds.isNullOrEmpty()
+        val rawSignature = if (noTags) {
+            // Standard Global overall feed
+            getFilesVersionToken()
+        } else {
+            // Feed filtered by tags
+            val combinedIds = (folderTagIds.orEmpty() + fileTagIds.orEmpty()).sorted()
+            val idVersions = combinedIds.map { redisTemplate.opsForValue().get("cache:version:tag:$it") ?: "1" }
+
+            "global_files_tags_" + combinedIds.zip(idVersions).joinToString("_") { "${it.first}-v${it.second}" }
+        }
+
+        val etag = "\"${DigestUtils.md5DigestAsHex(rawSignature.toByteArray(Charsets.UTF_8))}\""
+
+        if (request.checkNotModified(etag)) return null
+
+        val filesPage = if (noTags) {
+            mediaFilesRepo.findAll(pageable)
+        } else {
+            val fileIds = fileTagIds.orEmpty().filter { tagRepo.existsById(it) }
+            val folderIds = folderTagIds.orEmpty().filter { tagRepo.existsById(it) }
+
+            when {
+                fileIds.isNotEmpty() ->
+                    if (folderIds.isNotEmpty()) mediaFilesRepo.findFilesByTagsIds(fileIds, folderIds, pageable)
+                    else mediaFilesRepo.findFilesByFileTagsIds(fileIds, pageable)
+                else ->
+                    if (folderIds.isNotEmpty()) mediaFilesRepo.findFilesByFolderTagsIds(folderIds, pageable)
+                    else return ResponseEntity(PagedFileResponse(SimplePage()), HttpStatus.OK)
+            }
+        }
 
         val finalFiles = filesPage.content.map {
             fileMapper.toSingleDto(it, ipAddress)
         }
 
-        return PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
+        val result = PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
+        return ResponseEntity.ok()
+            .cacheControl(CacheControl.noCache())
+            .eTag(etag)
+            .body(result)
     }
 
     @GetMapping("/files/info")
@@ -218,6 +258,11 @@ class FoldersController(
     fun getFolderVersionToken(): String {
         val version = redisTemplate.opsForValue().get("cache:version:folders")
         return if (version != null) "v$version" else "v1"
+    }
+
+    fun getFilesVersionToken(): String {
+        val version = redisTemplate.opsForValue().get("cache:version:files")
+        return "global_files_v${version ?: "1"}"
     }
 }
 
