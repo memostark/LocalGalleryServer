@@ -18,6 +18,7 @@ import com.guillermonegrete.gallery.tags.data.TagRequest
 import io.swagger.v3.oas.annotations.Operation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.repository.findByIdOrNull
@@ -286,19 +287,30 @@ class TagsController(
         return ResponseEntity(PagedFileResponse(page), HttpStatus.OK)
     }
 
+    @Deprecated(message = "Moved to FoldersController. Use GET /folders/{folderId}/files instead of POST.")
+    @Operation(
+        deprecated = true,
+        description = "Replaced by GET /folders/{folderId}/files. Send the tag IDs using query parameters instead of the body.",
+    )
     @PostMapping("folders/{folderId}/files")
     fun getFilesByFolderAndTags(@PathVariable folderId: Long, @RequestBody tagIds: List<Long>, pageable: Pageable): ResponseEntity<PagedFileResponse>{
         val folder = folderRepo.findByIdOrNull(folderId) ?: throw RuntimeException("Folder with id $folderId not found")
         if(tagIds.isEmpty()) throw Exception("The tag list is empty")
 
         val ids = tagIds.filter { tagRepo.existsById(it) }
-        if (ids.isEmpty()) return ResponseEntity(PagedFileResponse(SimplePage()), HttpStatus.OK)
 
-        val filesPage = if (ids.size == 1) filesRepo.findFilesByTagsIdAndFolderId(ids.first(), folderId, pageable) else filesRepo.findFilesByTagsIdsAndFolderId(ids, folderId, pageable)
+        val filesPage = when {
+            ids.isEmpty() -> Page.empty()
+            ids.size == 1 -> filesRepo.findFilesByTagsIdAndFolderId(ids.first(), folderId, pageable)
+            else -> filesRepo.findFilesByTagsIdsAndFolderId(ids, folderId, pageable)
+        }
         val finalFiles = filesPage.content.toDto(folder.name, ipAddress)
 
         val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
-        return ResponseEntity(PagedFileResponse(page), HttpStatus.OK)
+        return ResponseEntity.status(HttpStatus.OK)
+            .header("Deprecation", "true")
+            .header("Link", "</folders/{folderId}/files>; rel=\"successor-version\"")
+            .body(PagedFileResponse(page))
     }
 
     @DeleteMapping("/files/{fileId}/tags/{tagId}")
