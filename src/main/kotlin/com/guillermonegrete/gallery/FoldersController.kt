@@ -121,19 +121,15 @@ class FoldersController(
                     else mediaFilesRepo.findFilesByFileTagsIds(fileIds, pageable)
                 else ->
                     if (folderIds.isNotEmpty()) mediaFilesRepo.findFilesByFolderTagsIds(folderIds, pageable)
-                    else return ResponseEntity(PagedFileResponse(SimplePage()), HttpStatus.OK)
+                    else mediaFilesRepo.findAll(pageable)
             }
         }
 
-        val finalFiles = filesPage.content.map {
+        val finalFiles = filesPage.map {
             fileMapper.toSingleDto(it, ipAddress)
         }
 
-        val result = PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
-        return ResponseEntity.ok()
-            .cacheControl(CacheControl.noCache())
-            .eTag(etag)
-            .body(result)
+        return generatePagedFileResponse(finalFiles, etag)
     }
 
     @GetMapping("/folders/{folderId}/files")
@@ -175,11 +171,8 @@ class FoldersController(
             }
         }
 
-        val finalFiles = filesPage.content.toDto(mediaFolder.name, ipAddress)
-        return ResponseEntity.ok()
-            .cacheControl(CacheControl.noCache())
-            .eTag(etag)
-            .body(PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())))
+        val finalFiles = filesPage.toDto(mediaFolder.name, ipAddress)
+        return generatePagedFileResponse(finalFiles, etag)
     }
 
     @GetMapping("/files/info")
@@ -301,7 +294,7 @@ class FoldersController(
         }
     }
 
-    fun generatePagedFolderResponse(foldersPage: Page<Folder>, etag: String): ResponseEntity<PagedFolderResponse> {
+    private fun generatePagedFolderResponse(foldersPage: Page<Folder>, etag: String): ResponseEntity<PagedFolderResponse> {
         val nextPage = if (foldersPage.hasNext()) foldersPage.nextPageable().pageNumber else null
         val page = SimplePage(foldersPage.content, foldersPage.totalPages, foldersPage.totalElements.toInt(), nextPage)
         return ResponseEntity.ok()
@@ -310,12 +303,21 @@ class FoldersController(
             .body(PagedFolderResponse(getFolderName(), page))
     }
 
-    fun getFolderVersionToken(): String {
+    private fun generatePagedFileResponse(filePage: Page<FileDTO>, etag: String): ResponseEntity<PagedFileResponse> {
+        val nextPage = if (filePage.hasNext()) filePage.nextPageable().pageNumber else null
+        val page = SimplePage(filePage.content, filePage.totalPages, filePage.totalElements.toInt(), nextPage)
+        return ResponseEntity.ok()
+            .cacheControl(CacheControl.noCache()) // Tells Android to always validate with server
+            .eTag(etag)
+            .body(PagedFileResponse(page))
+    }
+
+    private fun getFolderVersionToken(): String {
         val version = redisTemplate.opsForValue().get("cache:version:folders")
         return if (version != null) "v$version" else "v1"
     }
 
-    fun getFilesVersionToken(): String {
+    private fun getFilesVersionToken(): String {
         val version = redisTemplate.opsForValue().get("cache:version:files")
         return "global_files_v${version ?: "1"}"
     }
