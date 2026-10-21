@@ -15,6 +15,7 @@ import io.mockk.junit5.MockKExtension
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.data.redis.core.StringRedisTemplate
 import java.io.File
 
 @ExtendWith(MockKExtension::class)
@@ -27,10 +28,11 @@ class FolderProcessingServiceTest{
     @MockK private lateinit var folderEntityRepo: MediaFolderRepository
     @MockK private lateinit var fetchingService: FolderFetchingService
     @MockK private lateinit var fileProvider: FileProvider
+    @MockK private lateinit var redisTemplate: StringRedisTemplate
 
     @BeforeEach
     fun setUp(){
-        service = FolderProcessingService(folderRepository, fileEntityRepo, folderEntityRepo, fileProvider, fetchingService)
+        service = FolderProcessingService(folderRepository, fileEntityRepo, folderEntityRepo, fileProvider, fetchingService, redisTemplate)
 
         // Mocks for the thumbnails
         val mockFolder = mockk<File>()
@@ -40,6 +42,7 @@ class FolderProcessingServiceTest{
         every { fileProvider.createFromBase(any()) } returns mockFolder
         every { fileProvider.getFile(mockFolder, THUMBNAILS_FOLDER) } returns mockThumbnailFolder
         every { folderRepository.createFolder(thumbnailPath) } returns false
+        every { redisTemplate.opsForValue().increment(any()) } returns 0L
     }
 
     @Test

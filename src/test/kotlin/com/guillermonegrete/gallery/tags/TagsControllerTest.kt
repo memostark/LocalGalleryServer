@@ -1,7 +1,6 @@
 package com.guillermonegrete.gallery.tags
 
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.guillermonegrete.gallery.config.MockRedisTestConfig
 import com.guillermonegrete.gallery.config.NetworkConfig
 import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.MediaFolder
@@ -11,12 +10,7 @@ import com.guillermonegrete.gallery.data.files.ImageEntity
 import com.guillermonegrete.gallery.data.files.dto.ImageFileDTO
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
-import com.guillermonegrete.gallery.tags.data.TagDto
-import com.guillermonegrete.gallery.tags.data.TagEntity
-import com.guillermonegrete.gallery.tags.data.TagFile
-import com.guillermonegrete.gallery.tags.data.TagFileDto
-import com.guillermonegrete.gallery.tags.data.TagFolder
-import com.guillermonegrete.gallery.tags.data.TagFolderDto
+import com.guillermonegrete.gallery.tags.data.*
 import com.guillermonegrete.gallery.thumbnails.ThumbnailService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
@@ -26,9 +20,10 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.CommandLineRunner
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.repository.findByIdOrNull
@@ -37,15 +32,19 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.readValue
 import java.time.Instant
 import java.util.*
 
 @WebMvcTest
+@Import(MockRedisTestConfig::class)
 class TagsControllerTest(
     @param:Autowired val mockMvc: MockMvc,
     @param:Autowired val mapper: FileMapper,
-    @param:Autowired val objectMapper: ObjectMapper,
+    @param:Autowired val objectMapper: JsonMapper,
 ) {
 
     @MockkBean(relaxed = true)
@@ -78,7 +77,7 @@ class TagsControllerTest(
             .andExpect(status().isOk)
             .andReturn()
 
-        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<List<TagDto>>() {})
+        val resultResponse: List<TagDto> = objectMapper.readValue(result.response.contentAsString)
 
         assertThat(resultResponse).hasSize(2)
         assertEquals(tags.first(), resultResponse.first())
@@ -111,7 +110,7 @@ class TagsControllerTest(
 
         val result = mockMvc.perform(post("/files/{id}/tags", 0)
             .contentType(MediaType.APPLICATION_JSON)
-            .content("""{"name": "my_tag"}"""))
+            .content("""{"name": "my_tag", "id": 0}"""))
             .andExpect(status().isOk)
             .andReturn()
 
@@ -172,7 +171,7 @@ class TagsControllerTest(
             .andExpect(status().isOk)
             .andReturn()
 
-        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<List<ImageFileDTO>>() {})
+        val resultResponse: List<ImageFileDTO> = objectMapper.readValue(result.response.contentAsString)
         print(expectedResponse)
         assertEquals(expectedResponse, resultResponse)
     }
@@ -190,7 +189,7 @@ class TagsControllerTest(
             .andExpect(status().isOk)
             .andReturn()
 
-        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<SimplePage<ImageFileDTO>>() {})
+        val resultResponse: SimplePage<ImageFileDTO> = objectMapper.readValue(result.response.contentAsString)
         val expected = SimplePage(listOf(mapper.toDtoWithHost(file, ipAddress)), 1, 1)
         assertThat(resultResponse).isEqualTo(expected)
     }
@@ -208,7 +207,7 @@ class TagsControllerTest(
             .andExpect(status().isOk)
             .andReturn()
 
-        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<List<TagDto>>() {})
+        val resultResponse: List<TagDto> = objectMapper.readValue(result.response.contentAsString)
         assertThat(resultResponse).hasSize(2)
         val tagResult = resultResponse.first()
         assertThat(tagResult).isEqualTo(tag)
@@ -228,7 +227,7 @@ class TagsControllerTest(
             .andExpect(status().isOk)
             .andReturn()
 
-        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<SimplePage<ImageFileDTO>>() {})
+        val resultResponse: SimplePage<ImageFileDTO> = objectMapper.readValue(result.response.contentAsString)
         val expected = SimplePage(files.map { mapper.toDtoWithHost(it, ipAddress) }, 1, 1)
         assertThat(resultResponse).isEqualTo(expected)
     }
@@ -262,7 +261,7 @@ class TagsControllerTest(
 
         val result = mockMvc.perform(post("/folders/{id}/tags", 0)
             .contentType(MediaType.APPLICATION_JSON)
-            .content("""{"name": "my_tag"}"""))
+            .content("""{"name": "my_tag", "id": 0}"""))
             .andExpect(status().isOk)
             .andReturn()
 
