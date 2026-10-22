@@ -1,8 +1,8 @@
 package com.guillermonegrete.gallery.data.files
 
-import com.guillermonegrete.gallery.data.Folder
 import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.files.dto.*
+import com.guillermonegrete.gallery.data.toDto
 import com.guillermonegrete.gallery.tags.data.toBaseDto
 import org.springframework.data.domain.Page
 import org.springframework.stereotype.Component
@@ -28,7 +28,7 @@ class FileMapper {
         val encodedFolder = UriUtils.encodeQueryParam(e.folder.name, StandardCharsets.UTF_8)
         val encodedFilename = UriUtils.encodeQueryParam(e.filename, StandardCharsets.UTF_8)
         val url = "http://$host/images/$encodedFolder/$encodedFilename"
-        val folder = Folder(e.folder.name, "", "", e.folder.files.size, e.folder.id)
+        val folder = e.folder.toDto(host)
         val base = BaseFile(url, e.filename, e.width, e.height, e.creationDate, e.lastModified, e.tags.toBaseDto(), e.id)
         return when(e){
             is VideoEntity -> SingleVideoFile(folder, VideoFileDTO(e.duration, base))

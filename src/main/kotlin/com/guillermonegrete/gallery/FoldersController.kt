@@ -150,8 +150,7 @@ class FoldersController(
             val fileTagVersions =
                 sortedIds.map { redisTemplate.opsForValue().get("cache:version:attribute:$it") ?: "1" }
 
-            "folder-$folderId" +
-                    "_file_attrs-" + sortedIds.zip(fileTagVersions).joinToString("_") { "${it.first}-v${it.second}" }
+            "file_tags-" + sortedIds.zip(fileTagVersions).joinToString("_") { "${it.first}-v${it.second}" }
         }
 
         val etag = "\"${DigestUtils.md5DigestAsHex(rawSignature.toByteArray(Charsets.UTF_8))}\""
