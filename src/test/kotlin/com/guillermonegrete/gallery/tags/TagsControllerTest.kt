@@ -158,7 +158,7 @@ class TagsControllerTest(
         )
         every { mediaFileRepository.findByIdIn(listOf(2,3,4)) } returns files
 
-        every { mediaFileRepository.saveAll<MediaFile>(any()) } returns listOf()
+        every { mediaFileRepository.saveAll<MediaFile>(any()) } returns files
 
         // Using string comparison instead of
         val expectedResponse = files.map {
