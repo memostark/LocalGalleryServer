@@ -1,7 +1,6 @@
 package com.guillermonegrete.gallery
 
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.guillermonegrete.gallery.config.MockRedisTestConfig
 import com.guillermonegrete.gallery.config.NetworkConfig
 import com.guillermonegrete.gallery.data.*
 import com.guillermonegrete.gallery.data.files.FileMapper
@@ -21,11 +20,13 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.CommandLineRunner
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.http.MediaType
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
@@ -34,16 +35,19 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.readValue
 
 
 @WebMvcTest(controllers = [FoldersController::class])
+@Import(MockRedisTestConfig::class)
 @TestPropertySource(properties = [
     "base.path=dummy"
 ])
 class FoldersControllerTest(
     @param:Autowired val mockMvc: MockMvc,
     @param:Autowired val mapper: FileMapper,
-    @param:Autowired val objectMapper: ObjectMapper
+    @param:Autowired val objectMapper: JsonMapper,
 ) {
 
     // For the bean in the application class, don't want to run it in these tests
@@ -77,8 +81,10 @@ class FoldersControllerTest(
 
         val expected = PagedFolderResponse(
             path,
-            SimplePage(subList.map { Folder(it.name, "http://$ipAddress/images/${it.name}/$filename", filename, 1, it.id) },
-            2, content.size),
+            SimplePage(
+                subList.map { Folder(it.name, "http://$ipAddress/images/${it.name}/$filename", filename, 1, it.id) },
+                2, content.size, 1
+            ),
         )
         val result = mockMvc.perform(get("/folders")).andDo(print())
             .andExpect(status().isOk)
@@ -120,7 +126,7 @@ class FoldersControllerTest(
             .andExpect(status().isOk)
             .andReturn()
 
-        val resultResponse = objectMapper.readValue(result.response.contentAsString, object: TypeReference<SimplePage<ImageFileDTO>>() {})
+        val resultResponse: SimplePage<ImageFileDTO> = objectMapper.readValue(result.response.contentAsString)
         assertEquals(expected, resultResponse)
     }
 

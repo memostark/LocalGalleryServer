@@ -11,6 +11,7 @@ import com.guillermonegrete.gallery.data.files.toDto
 import com.guillermonegrete.gallery.repository.MediaFileRepository
 import com.guillermonegrete.gallery.repository.MediaFolderRepository
 import com.guillermonegrete.gallery.tags.TagsRepository
+import io.swagger.v3.oas.annotations.Operation
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -67,24 +68,110 @@ class FoldersController(
         return mediaFolder.files.toDto(subFolder, ipAddress)
     }
 
+    @Deprecated(message = "Use GET /folders/{folderId}/files instead.")
+    @Operation(
+        deprecated = true,
+        description = "Replaced by GET /folders/{folderId}/files. Pass the folder ID instead of the foldername.",
+    )
     @GetMapping("/folders/{subFolder}", params = ["page"])
-    fun subFolder(@PathVariable subFolder: String, pageable: Pageable): PagedFileResponse {
+    fun subFolder(@PathVariable subFolder: String, pageable: Pageable): ResponseEntity<PagedFileResponse> {
         val mediaFolder = mediaFolderRepo.findByName(subFolder) ?: throw RuntimeException("Folder path $subFolder not found")
 
         val filesPage = mediaFilesRepo.findAllByFolder(mediaFolder, pageable)
         val finalFiles = filesPage.content.toDto(subFolder, ipAddress)
-        return PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
+        return ResponseEntity.status(HttpStatus.OK)
+            .header("Deprecation", "true")
+            .header("Link", "</folders/{folderId}/files>; rel=\"successor-version\"")
+            .body(PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())))
     }
 
     @GetMapping("/files")
-    fun files(pageable: Pageable): PagedFileResponse {
-        val filesPage = mediaFilesRepo.findAll(pageable)
+    fun files(
+        @RequestParam(required = false) fileTagIds: List<Long>?,
+        @RequestParam(required = false) folderTagIds: List<Long>?,
+        pageable: Pageable,
+        request: WebRequest,
+    ): ResponseEntity<PagedFileResponse>? {
 
-        val finalFiles = filesPage.content.map {
+        val noTags = fileTagIds.isNullOrEmpty() && folderTagIds.isNullOrEmpty()
+        val rawSignature = if (noTags) {
+            // Standard Global overall feed
+            getFilesVersionToken()
+        } else {
+            // Feed filtered by tags
+            val combinedIds = (folderTagIds.orEmpty() + fileTagIds.orEmpty()).sorted()
+            val idVersions = combinedIds.map { redisTemplate.opsForValue().get("cache:version:tag:$it") ?: "1" }
+
+            "global_files_tags_" + combinedIds.zip(idVersions).joinToString("_") { "${it.first}-v${it.second}" }
+        }
+
+        val etag = "\"${DigestUtils.md5DigestAsHex(rawSignature.toByteArray(Charsets.UTF_8))}\""
+
+        if (request.checkNotModified(etag)) return null
+
+        val filesPage = if (noTags) {
+            mediaFilesRepo.findAll(pageable)
+        } else {
+            val fileIds = fileTagIds.orEmpty().filter { tagRepo.existsById(it) }
+            val folderIds = folderTagIds.orEmpty().filter { tagRepo.existsById(it) }
+
+            when {
+                fileIds.isNotEmpty() ->
+                    if (folderIds.isNotEmpty()) mediaFilesRepo.findFilesByTagsIds(fileIds, folderIds, pageable)
+                    else mediaFilesRepo.findFilesByFileTagsIds(fileIds, pageable)
+                else ->
+                    if (folderIds.isNotEmpty()) mediaFilesRepo.findFilesByFolderTagsIds(folderIds, pageable)
+                    else mediaFilesRepo.findAll(pageable)
+            }
+        }
+
+        val finalFiles = filesPage.map {
             fileMapper.toSingleDto(it, ipAddress)
         }
 
-        return PagedFileResponse(SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt()))
+        return generatePagedFileResponse(finalFiles, etag)
+    }
+
+    @GetMapping("/folders/{folderId}/files")
+    fun folderFiles(
+        @PathVariable folderId: Long,
+        @RequestParam(required = false) tagIds: List<Long>?,
+        pageable: Pageable,
+        request: WebRequest,
+    ): ResponseEntity<PagedFileResponse>? {
+        val noTags = tagIds.isNullOrEmpty()
+        val rawSignature = if (noTags) {
+            // Standard folder files
+            val folderFileVersion = redisTemplate.opsForValue().get("cache:version:files:folder:$folderId") ?: "1"
+            "folder-$folderId-v$folderFileVersion"
+        } else {
+            // Folder files filtered by tags
+            val sortedIds = tagIds.sorted()
+            val fileTagVersions =
+                sortedIds.map { redisTemplate.opsForValue().get("cache:version:attribute:$it") ?: "1" }
+
+            "file_tags-" + sortedIds.zip(fileTagVersions).joinToString("_") { "${it.first}-v${it.second}" }
+        }
+
+        val etag = "\"${DigestUtils.md5DigestAsHex(rawSignature.toByteArray(Charsets.UTF_8))}\""
+
+        if (request.checkNotModified(etag)) return null
+
+        val mediaFolder = mediaFolderRepo.findByIdOrNull(folderId) ?: throw RuntimeException("Folder with id $folderId not found")
+
+        val filesPage = if (noTags) {
+            mediaFilesRepo.findAllByFolder(mediaFolder, pageable)
+        } else {
+            val ids = tagIds.filter { tagRepo.existsById(it) }
+            when {
+                ids.isEmpty() -> Page.empty()
+                ids.size == 1 -> mediaFilesRepo.findFilesByTagsIdAndFolderId(ids.first(), folderId, pageable)
+                else -> mediaFilesRepo.findFilesByTagsIdsAndFolderId(ids, folderId, pageable)
+            }
+        }
+
+        val finalFiles = filesPage.toDto(mediaFolder.name, ipAddress)
+        return generatePagedFileResponse(finalFiles, etag)
     }
 
     @GetMapping("/files/info")
@@ -206,7 +293,7 @@ class FoldersController(
         }
     }
 
-    fun generatePagedFolderResponse(foldersPage: Page<Folder>, etag: String): ResponseEntity<PagedFolderResponse> {
+    private fun generatePagedFolderResponse(foldersPage: Page<Folder>, etag: String): ResponseEntity<PagedFolderResponse> {
         val nextPage = if (foldersPage.hasNext()) foldersPage.nextPageable().pageNumber else null
         val page = SimplePage(foldersPage.content, foldersPage.totalPages, foldersPage.totalElements.toInt(), nextPage)
         return ResponseEntity.ok()
@@ -215,9 +302,23 @@ class FoldersController(
             .body(PagedFolderResponse(getFolderName(), page))
     }
 
-    fun getFolderVersionToken(): String {
+    private fun generatePagedFileResponse(filePage: Page<FileDTO>, etag: String): ResponseEntity<PagedFileResponse> {
+        val nextPage = if (filePage.hasNext()) filePage.nextPageable().pageNumber else null
+        val page = SimplePage(filePage.content, filePage.totalPages, filePage.totalElements.toInt(), nextPage)
+        return ResponseEntity.ok()
+            .cacheControl(CacheControl.noCache()) // Tells Android to always validate with server
+            .eTag(etag)
+            .body(PagedFileResponse(page))
+    }
+
+    private fun getFolderVersionToken(): String {
         val version = redisTemplate.opsForValue().get("cache:version:folders")
         return if (version != null) "v$version" else "v1"
+    }
+
+    private fun getFilesVersionToken(): String {
+        val version = redisTemplate.opsForValue().get("cache:version:files")
+        return "global_files_v${version ?: "1"}"
     }
 }
 

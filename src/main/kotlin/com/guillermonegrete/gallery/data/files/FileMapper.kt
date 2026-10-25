@@ -1,9 +1,10 @@
 package com.guillermonegrete.gallery.data.files
 
-import com.guillermonegrete.gallery.data.Folder
 import com.guillermonegrete.gallery.data.MediaFile
 import com.guillermonegrete.gallery.data.files.dto.*
+import com.guillermonegrete.gallery.data.toDto
 import com.guillermonegrete.gallery.tags.data.toBaseDto
+import org.springframework.data.domain.Page
 import org.springframework.stereotype.Component
 import org.springframework.web.util.UriUtils
 import java.nio.charset.StandardCharsets
@@ -27,7 +28,7 @@ class FileMapper {
         val encodedFolder = UriUtils.encodeQueryParam(e.folder.name, StandardCharsets.UTF_8)
         val encodedFilename = UriUtils.encodeQueryParam(e.filename, StandardCharsets.UTF_8)
         val url = "http://$host/images/$encodedFolder/$encodedFilename"
-        val folder = Folder(e.folder.name, "", "", e.folder.files.size, e.folder.id)
+        val folder = e.folder.toDto(host)
         val base = BaseFile(url, e.filename, e.width, e.height, e.creationDate, e.lastModified, e.tags.toBaseDto(), e.id)
         return when(e){
             is VideoEntity -> SingleVideoFile(folder, VideoFileDTO(e.duration, base))
@@ -42,6 +43,20 @@ class FileMapper {
  * Maps the entity files to DTO for files belonging to the same [folder].
  */
 fun List<MediaFile>.toDto(folder: String, host: String): List<FileDTO> {
+    val encodedFolder = UriUtils.encodeQueryParam(folder, StandardCharsets.UTF_8)
+    return this.map { e ->
+        val encodedFilename = UriUtils.encodeQueryParam(e.filename, StandardCharsets.UTF_8)
+        val url = "http://$host/images/$encodedFolder/$encodedFilename"
+        val base = BaseFile(url, e.filename, e.width, e.height, e.creationDate, e.lastModified, e.tags.toBaseDto(), e.id)
+        when(e){
+            is VideoEntity -> VideoFileDTO(e.duration, base)
+            is ImageEntity -> ImageFileDTO(base)
+            else -> ImageFileDTO(base)
+        }
+    }
+}
+
+fun Page<MediaFile>.toDto(folder: String, host: String): Page<FileDTO> {
     val encodedFolder = UriUtils.encodeQueryParam(folder, StandardCharsets.UTF_8)
     return this.map { e ->
         val encodedFilename = UriUtils.encodeQueryParam(e.filename, StandardCharsets.UTF_8)

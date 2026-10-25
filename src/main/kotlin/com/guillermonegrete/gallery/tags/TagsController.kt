@@ -15,8 +15,10 @@ import com.guillermonegrete.gallery.tags.data.TagEntity
 import com.guillermonegrete.gallery.tags.data.TagFile
 import com.guillermonegrete.gallery.tags.data.TagFolder
 import com.guillermonegrete.gallery.tags.data.TagRequest
+import io.swagger.v3.oas.annotations.Operation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.repository.findByIdOrNull
@@ -48,48 +50,6 @@ class TagsController(
         return ResponseEntity(fileTags + folderTags, HttpStatus.OK)
     }
 
-    @GetMapping("/tags/files")
-    fun getFileTags(): ResponseEntity<Set<TagDto>> {
-        val tags = fileTagsRepo.getFileTags()
-        return if (tags.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tags, HttpStatus.OK)
-    }
-
-    @PostMapping("/tags/add")
-    fun createTag(@RequestParam name: String): ResponseEntity<Any> {
-        if (name.isBlank()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tag can't be blank")
-
-        return try {
-            val tag = fileTagsRepo.save(TagFile(name))
-            ResponseEntity(tag, HttpStatus.OK)
-        } catch (ex: DataIntegrityViolationException){
-            println("Duplicate entry for $name")
-            ex.printStackTrace()
-            ResponseEntity("Duplicate tag", HttpStatus.INTERNAL_SERVER_ERROR)
-        }
-    }
-
-    @PostMapping("files/{id}/tags")
-    fun addTag(@PathVariable id: Long, @RequestBody tag: TagRequest): ResponseEntity<TagEntity> {
-        if (tag.name.isBlank()) throw Exception("Tag can't be blank")
-
-        val newTag = filesRepo.findById(id).map { file ->
-            val tagId = tag.id
-
-            if(tagId != 0L){
-                val savedTag = fileTagsRepo.findById(tagId)
-                    .orElseThrow { Exception("Tag with id $tagId not found") }
-                file.addTag(savedTag)
-                filesRepo.save(file)
-                return@map savedTag
-            }
-
-            val completeTag = fileTagsRepo.findByName(tag.name) ?: TagFile(tag.name, id = tag.id)
-            file.addTag(completeTag)
-            fileTagsRepo.save(completeTag)
-        }.orElseThrow { Exception("File with id $id not found") }
-        return ResponseEntity(newTag, HttpStatus.OK)
-    }
-
     @GetMapping("tags/{id}/files")
     fun getFilesByTag(@PathVariable id: Long, pageable: Pageable): ResponseEntity<PagedFileResponse>{
         if(!tagRepo.existsById(id)) throw Exception("Tag with id $id not found")
@@ -116,6 +76,11 @@ class TagsController(
         return ResponseEntity(PagedFileResponse(page), HttpStatus.OK)
     }
 
+    @Deprecated(message = "Moved to FoldersController. Use GET /files instead of POST.")
+    @Operation(
+        deprecated = true,
+        description = "Replaced by GET /files. Send the tag IDs using query parameters instead of the body.",
+    )
     @PostMapping("/files")
     fun getFilesByTags(@RequestBody ids: FilterTagsRequest, pageable: Pageable): ResponseEntity<PagedFileResponse>{
         val fileIds = ids.fileTagIds.filter { fileTagsRepo.existsById(it) }
@@ -133,17 +98,66 @@ class TagsController(
         val finalFiles = filesPage.content.map { fileMapper.toSingleDto(it, ipAddress) }
 
         val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
-        return ResponseEntity(PagedFileResponse(page), HttpStatus.OK)
+        return ResponseEntity.status(HttpStatus.OK)
+            .header("Deprecation", "true")
+            .header("Link", "</files>; rel=\"successor-version\"")
+            .body(PagedFileResponse(page))
     }
 
-    @PostMapping("tags/{id}/files")
+    //region Files
+
+    @GetMapping("/tags/files")
+    fun getFileTags(): ResponseEntity<Set<TagDto>> {
+        val tags = fileTagsRepo.getFileTags()
+        return if (tags.isEmpty()) ResponseEntity(HttpStatus.NO_CONTENT) else ResponseEntity(tags, HttpStatus.OK)
+    }
+
+    @PostMapping("/tags/add")
+    fun createTag(@RequestParam name: String): ResponseEntity<Any> {
+        if (name.isBlank()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tag can't be blank")
+
+        return try {
+            val tag = fileTagsRepo.save(TagFile(name))
+            ResponseEntity(tag, HttpStatus.OK)
+        } catch (ex: DataIntegrityViolationException){
+            println("Duplicate entry for $name")
+            ex.printStackTrace()
+            ResponseEntity("Duplicate tag", HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+    }
+
+    @PostMapping("files/{id}/tags")
+    fun addFileTag(@PathVariable id: Long, @RequestBody tag: TagRequest): ResponseEntity<TagEntity> {
+        if (tag.name.isBlank()) throw Exception("Tag can't be blank")
+
+        val newTag = filesRepo.findById(id).map { file ->
+            val tagId = tag.id
+
+            if(tagId != 0L){
+                val savedTag = fileTagsRepo.findById(tagId)
+                    .orElseThrow { Exception("Tag with id $tagId not found") }
+                file.addTag(savedTag)
+                filesRepo.save(file)
+                invalidateTagCache(savedTag.id)
+                return@map savedTag
+            }
+
+            val completeTag = fileTagsRepo.findByName(tag.name) ?: TagFile(tag.name, id = tag.id)
+            file.addTag(completeTag)
+            fileTagsRepo.save(completeTag)
+        }.orElseThrow { Exception("File with id $id not found") }
+        invalidateTagCache(newTag.id)
+        return ResponseEntity(newTag, HttpStatus.OK)
+    }
+
+    @PostMapping("/tags/{id}/files")
     fun addTagToFiles(@PathVariable id: Long, @RequestBody fileIds: List<Long>): ResponseEntity<List<FileDTO>> {
         val tag = fileTagsRepo.findByIdOrNull(id) ?: throw RuntimeException("Tag id $id not found")
 
-        val files = filesRepo.findByIdIn(fileIds)
+        val files = filesRepo.findByIdIn(fileIds).filter { it.addTag(tag) }
 
-        val updatedFiles = files.filter { it.addTag(tag) }
-        filesRepo.saveAll(files)
+        val updatedFiles = filesRepo.saveAll(files)
+        if (files.isNotEmpty()) invalidateTagCache(id)
         val fileDTOs = updatedFiles.map { fileMapper.toDtoWithHost(it, ipAddress) }
         return ResponseEntity(fileDTOs, HttpStatus.OK)
     }
@@ -156,8 +170,24 @@ class TagsController(
 
         tags.forEach { file.addTag(it) }
         filesRepo.save(file)
+        tags.forEach { invalidateTagCache(it.id) }
         return ResponseEntity(tags, HttpStatus.OK)
     }
+
+    @DeleteMapping("/files/{fileId}/tags/{tagId}")
+    fun deleteTagFromFiles(
+        @PathVariable fileId: Long,
+        @PathVariable tagId: Long
+    ): ResponseEntity<HttpStatus> {
+        val file = filesRepo.findById(fileId)
+            .orElseThrow { RuntimeException("File not found with id = $fileId") }
+        file.removeTag(tagId)
+        filesRepo.save(file)
+        invalidateTagCache(tagId)
+        return ResponseEntity(HttpStatus.NO_CONTENT)
+    }
+
+    // endregion
 
     //region Folders
 
@@ -277,36 +307,36 @@ class TagsController(
         return ResponseEntity(PagedFileResponse(page), HttpStatus.OK)
     }
 
+    @Deprecated(message = "Moved to FoldersController. Use GET /folders/{folderId}/files instead of POST.")
+    @Operation(
+        deprecated = true,
+        description = "Replaced by GET /folders/{folderId}/files. Send the tag IDs using query parameters instead of the body.",
+    )
     @PostMapping("folders/{folderId}/files")
     fun getFilesByFolderAndTags(@PathVariable folderId: Long, @RequestBody tagIds: List<Long>, pageable: Pageable): ResponseEntity<PagedFileResponse>{
         val folder = folderRepo.findByIdOrNull(folderId) ?: throw RuntimeException("Folder with id $folderId not found")
         if(tagIds.isEmpty()) throw Exception("The tag list is empty")
 
         val ids = tagIds.filter { tagRepo.existsById(it) }
-        if (ids.isEmpty()) return ResponseEntity(PagedFileResponse(SimplePage()), HttpStatus.OK)
 
-        val filesPage = if (ids.size == 1) filesRepo.findFilesByTagsIdAndFolderId(ids.first(), folderId, pageable) else filesRepo.findFilesByTagsIdsAndFolderId(ids, folderId, pageable)
+        val filesPage = when {
+            ids.isEmpty() -> Page.empty()
+            ids.size == 1 -> filesRepo.findFilesByTagsIdAndFolderId(ids.first(), folderId, pageable)
+            else -> filesRepo.findFilesByTagsIdsAndFolderId(ids, folderId, pageable)
+        }
         val finalFiles = filesPage.content.toDto(folder.name, ipAddress)
 
         val page  = SimplePage(finalFiles, filesPage.totalPages, filesPage.totalElements.toInt())
-        return ResponseEntity(PagedFileResponse(page), HttpStatus.OK)
-    }
-
-    @DeleteMapping("/files/{fileId}/tags/{tagId}")
-    fun deleteTagFromFiles(
-        @PathVariable fileId: Long,
-        @PathVariable tagId: Long
-    ): ResponseEntity<HttpStatus> {
-        val file = filesRepo.findById(fileId)
-            .orElseThrow { RuntimeException("File not found with id = $fileId") }
-        file.removeTag(tagId)
-        filesRepo.save(file)
-        return ResponseEntity(HttpStatus.NO_CONTENT)
+        return ResponseEntity.status(HttpStatus.OK)
+            .header("Deprecation", "true")
+            .header("Link", "</folders/{folderId}/files>; rel=\"successor-version\"")
+            .body(PagedFileResponse(page))
     }
 
     @DeleteMapping("/tags/{id}")
     fun deleteTag(@PathVariable("id") id: Long): ResponseEntity<HttpStatus> {
         tagRepo.deleteById(id)
+        invalidateTagCache(id)
         return ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
